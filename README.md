@@ -7,6 +7,7 @@ Personal archive for custom agent skills by [Dennis Zoma](https://zoma.dev).
 | Skill | Path | Notes |
 | --- | --- | --- |
 | `deep-research-firecrawl` | [skills/deep-research-firecrawl](skills/deep-research-firecrawl/) | Firecrawl-first deep research with selectable depth modes |
+| `date-fns` | [skills/date-fns](skills/date-fns/) | Practical date-fns v4 and native @date-fns/tz workflow with strict timezone package guidance |
 | `jotai-nextjs` | [skills/jotai-nextjs](skills/jotai-nextjs/) | Jotai state management workflow with Next.js-focused SSR/hydration and migration guidance |
 | `use-the-index-luke` | [skills/use-the-index-luke](skills/use-the-index-luke/) | Postgres indexing-first optimization workflow based on Use The Index, Luke |
 
@@ -20,10 +21,13 @@ npx skills add https://github.com/wottpal/skills --list
 # 2) Install the deep research skill
 npx skills add https://github.com/wottpal/skills --skill deep-research-firecrawl -y -g
 
-# 3) Install the Jotai + Next.js skill
+# 3) Install the date-fns skill
+npx skills add https://github.com/wottpal/skills --skill date-fns -y -g
+
+# 4) Install the Jotai + Next.js skill
 npx skills add https://github.com/wottpal/skills --skill jotai-nextjs -y -g
 
-# 4) Install the Postgres tuning skill
+# 5) Install the Postgres tuning skill
 npx skills add https://github.com/wottpal/skills --skill use-the-index-luke -y -g
 ```
 
@@ -38,7 +42,10 @@ npx skills add /<path-to-repo>/skills --list
 # 2) Install a specific skill from local files
 npx skills add /<path-to-repo>/skills --skill use-the-index-luke -y -g
 
-# 3) Install Jotai + Next.js skill from local files
+# 3) Install date-fns skill from local files
+npx skills add /<path-to-repo>/skills --skill date-fns -y -g
+
+# 4) Install Jotai + Next.js skill from local files
 npx skills add /<path-to-repo>/skills --skill jotai-nextjs -y -g
 ```
 
