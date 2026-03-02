@@ -9,6 +9,7 @@ Personal archive for custom agent skills by [Dennis Zoma](https://zoma.dev).
 | `deep-research-firecrawl` | [skills/deep-research-firecrawl](skills/deep-research-firecrawl/) | Firecrawl-first deep research with selectable depth modes |
 | `date-fns` | [skills/date-fns](skills/date-fns/) | Practical date-fns v4 and native @date-fns/tz workflow with strict timezone package guidance |
 | `jotai-nextjs` | [skills/jotai-nextjs](skills/jotai-nextjs/) | Jotai state management workflow with Next.js-focused SSR/hydration and migration guidance |
+| `readme-agents-writer` | [skills/readme-agents-writer](skills/readme-agents-writer/) | Write/refactor README.md + AGENTS.md + CLAUDE.md with strict symlink-triplet policy and verification-first workflows |
 | `slack-web-api` | [skills/slack-web-api](skills/slack-web-api/) | Slack Web API workflow for posting, searching, channel history/threads, and reactions |
 | `use-the-index-luke` | [skills/use-the-index-luke](skills/use-the-index-luke/) | Postgres indexing-first optimization workflow based on Use The Index, Luke |
 
@@ -33,6 +34,9 @@ npx skills add https://github.com/wottpal/skills --skill use-the-index-luke -y -
 
 # 6) Install the Slack Web API skill
 npx skills add https://github.com/wottpal/skills --skill slack-web-api -y -g
+
+# 7) Install the README/AGENTS/CLAUDE writer skill
+npx skills add https://github.com/wottpal/skills --skill readme-agents-writer -y -g
 ```
 
 ## Local Installation (for contributors)
@@ -54,6 +58,9 @@ npx skills add /<path-to-repo>/skills --skill jotai-nextjs -y -g
 
 # 5) Install Slack Web API skill from local files
 npx skills add /<path-to-repo>/skills --skill slack-web-api -y -g
+
+# 6) Install README/AGENTS/CLAUDE writer skill from local files
+npx skills add /<path-to-repo>/skills --skill readme-agents-writer -y -g
 ```
 
 ## Repository 
