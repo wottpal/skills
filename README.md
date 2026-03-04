@@ -2,6 +2,20 @@
 
 Personal archive for custom agent skills by [Dennis Zoma](https://zoma.dev).
 
+## Source of Truth For Edits
+
+When you are in this repository, always edit skills under this repo:
+
+- `skills/<skill-name>/...`
+
+Never edit installed copies directly:
+
+- `~/.agents/skills/...`
+- `~/.codex/skills/...`
+
+Those home-directory locations are consumer/install targets and can be overwritten by future installs.  
+For publishing and maintenance, this repository is the canonical source of truth.
+
 ## Skills
 
 | Skill | Path | Notes |
@@ -70,14 +84,32 @@ npx skills add /<path-to-repo>/skills --skill slack-web-api -y -g
 npx skills add /<path-to-repo>/skills --skill readme-agents-writer -y -g
 ```
 
-## Repository 
+## Contributor Workflow (Canonical)
+
+Use this loop whenever you update a skill:
+
+```bash
+# 1) Edit the skill in this repo (source of truth)
+$EDITOR "/Users/zoma/Developer/wottpal/skills/skills/<skill-name>/SKILL.md"
+
+# 2) Reinstall that skill from this local repository
+npx skills add "/Users/zoma/Developer/wottpal/skills" --skill "<skill-name>" -y -g
+
+# 3) Optional: compare installed copy against repo source
+diff -u \
+  "/Users/zoma/Developer/wottpal/skills/skills/<skill-name>/SKILL.md" \
+  "$HOME/.agents/skills/<skill-name>/SKILL.md"
+```
+
+## Repository
 
 ```text
 skills/
 ├── <skill-name>/
 │   ├── SKILL.md
-│   ├── reference/
+│   ├── references/
 │   ├── scripts/
+│   ├── assets/
 │   └── templates/
 └── ...
 ```
@@ -85,9 +117,9 @@ skills/
 ## Conventions
 
 - One skill per folder under `skills/`.
-- Keep `SKILL.md` concise; move long content to `reference/`.
+- Keep `SKILL.md` concise; move long content to `references/`.
 - Use clear frontmatter (`name`, `description`) for reliable skill discovery.
-- Keep references one level deep from `SKILL.md`.
+- Keep `references/`, `scripts/`, and `assets/` one level deep from `SKILL.md`.
 - Prefer executable scripts for deterministic validation tasks.
 
 ## Attribution
