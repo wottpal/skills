@@ -27,6 +27,7 @@ For publishing and maintenance, this repository is the canonical source of truth
 | `readme-agents-writer` | [skills/readme-agents-writer](skills/readme-agents-writer/) | Write/refactor README.md + AGENTS.md + CLAUDE.md with strict symlink-triplet policy and verification-first workflows |
 | `slack-web-api` | [skills/slack-web-api](skills/slack-web-api/) | Slack Web API workflow for posting, searching, channel history/threads, and reactions |
 | `use-the-index-luke` | [skills/use-the-index-luke](skills/use-the-index-luke/) | Postgres indexing-first optimization workflow based on Use The Index, Luke |
+| `worktree-handoff` | [skills/worktree-handoff](skills/worktree-handoff/) | Worktree-aware handoff of all uncommitted and untracked changes onto a local target branch, defaulting to `develop` |
 
 ## Installation
 
@@ -55,6 +56,9 @@ npx skills add https://github.com/wottpal/skills --skill slack-web-api -y -g
 
 # 8) Install the README/AGENTS/CLAUDE writer skill
 npx skills add https://github.com/wottpal/skills --skill readme-agents-writer -y -g
+
+# 9) Install the worktree handoff skill
+npx skills add https://github.com/wottpal/skills --skill worktree-handoff -y -g
 ```
 
 ## Local Installation (for contributors)
@@ -82,6 +86,9 @@ npx skills add /<path-to-repo>/skills --skill slack-web-api -y -g
 
 # 7) Install README/AGENTS/CLAUDE writer skill from local files
 npx skills add /<path-to-repo>/skills --skill readme-agents-writer -y -g
+
+# 8) Install worktree-handoff skill from local files
+npx skills add /<path-to-repo>/skills --skill worktree-handoff -y -g
 ```
 
 ## Contributor Workflow (Canonical)
