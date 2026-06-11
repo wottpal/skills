@@ -25,6 +25,7 @@ For publishing and maintenance, this repository is the canonical source of truth
 | `date-fns` | [skills/date-fns](skills/date-fns/) | Practical date-fns v4 and native @date-fns/tz workflow with strict timezone package guidance |
 | `jotai-nextjs` | [skills/jotai-nextjs](skills/jotai-nextjs/) | Jotai state management workflow with Next.js-focused SSR/hydration and migration guidance |
 | `readme-agents-writer` | [skills/readme-agents-writer](skills/readme-agents-writer/) | Write/refactor README.md + AGENTS.md + CLAUDE.md with strict symlink-triplet policy and verification-first workflows |
+| `sem-diff` | [skills/sem-diff](skills/sem-diff/) | Entity-level semantic Git diff, blame, dependency impact, and AI-ready context workflow using sem |
 | `slack-web-api` | [skills/slack-web-api](skills/slack-web-api/) | Slack Web API workflow for posting, searching, channel history/threads, and reactions |
 | `use-the-index-luke` | [skills/use-the-index-luke](skills/use-the-index-luke/) | Postgres indexing-first optimization workflow based on Use The Index, Luke |
 | `worktree-handoff` | [skills/worktree-handoff](skills/worktree-handoff/) | Worktree-aware handoff of all uncommitted and untracked changes onto a local target branch, defaulting to `develop` |
@@ -57,7 +58,10 @@ npx skills add https://github.com/wottpal/skills --skill slack-web-api -y -g
 # 8) Install the README/AGENTS/CLAUDE writer skill
 npx skills add https://github.com/wottpal/skills --skill readme-agents-writer -y -g
 
-# 9) Install the worktree handoff skill
+# 9) Install the sem diff skill
+npx skills add https://github.com/wottpal/skills --skill sem-diff -y -g
+
+# 10) Install the worktree handoff skill
 npx skills add https://github.com/wottpal/skills --skill worktree-handoff -y -g
 ```
 
@@ -87,7 +91,10 @@ npx skills add /<path-to-repo>/skills --skill slack-web-api -y -g
 # 7) Install README/AGENTS/CLAUDE writer skill from local files
 npx skills add /<path-to-repo>/skills --skill readme-agents-writer -y -g
 
-# 8) Install worktree-handoff skill from local files
+# 8) Install sem-diff skill from local files
+npx skills add /<path-to-repo>/skills --skill sem-diff -y -g
+
+# 9) Install worktree-handoff skill from local files
 npx skills add /<path-to-repo>/skills --skill worktree-handoff -y -g
 ```
 
