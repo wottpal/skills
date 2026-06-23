@@ -28,7 +28,7 @@ For publishing and maintenance, this repository is the canonical source of truth
 | `sem-diff` | [skills/sem-diff](skills/sem-diff/) | Entity-level semantic Git diff, blame, dependency impact, and AI-ready context workflow using sem |
 | `slack-web-api` | [skills/slack-web-api](skills/slack-web-api/) | Slack Web API workflow for posting, searching, channel history/threads, and reactions |
 | `use-the-index-luke` | [skills/use-the-index-luke](skills/use-the-index-luke/) | Postgres indexing-first optimization workflow based on Use The Index, Luke |
-| `worktree-handoff` | [skills/worktree-handoff](skills/worktree-handoff/) | Worktree-aware handoff of all uncommitted and untracked changes onto a local target branch, defaulting to `develop` |
+| `worktree-handoff` | [skills/worktree-handoff](skills/worktree-handoff/) | Worktree-aware handoff of all uncommitted and untracked changes onto a local target branch, defaulting to the current linked-worktree branch or `develop` |
 
 ## Installation
 
