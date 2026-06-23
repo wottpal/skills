@@ -22,7 +22,8 @@ The source worktree must look the same before and after the handoff. The handoff
 - Default target branch:
   - If the user named a target branch, use it.
   - If no target is named and the current source is a linked worktree, use the current source branch as the canonical destination branch.
-  - Otherwise use `develop`.
+  - If no target is named and the source is detached, first check `git worktree list --porcelain` for same-HEAD branch worktrees before falling back to `develop`.
+  - Never use `develop` as the detached fallback until same-HEAD branch worktrees have been checked.
 - Source worktree state is invariant. Do not clear it, clean it, switch it, reset it, restore it, or stash/pop/apply from it as part of the handoff.
 - Do not update the destination branch with `pull`, `merge`, `rebase`, or `reset` as part of the handoff. Apply onto the destination's current local state.
 - Do not use destructive git commands.
@@ -44,16 +45,34 @@ git worktree list --porcelain
 - Capture the source status first; it must match again after the handoff.
 - `git status --short --branch` replaces separate branch and status checks.
 - If `HEAD` is detached, use the short commit SHA as the source ref in the report.
+- When resolving an implicit target, state which rule selected it before applying anything.
 - If there are no source changes, stop and say there is nothing to hand off.
 
 ### 2) Resolve the default target branch
 
 Only do this if the user did not specify a target branch.
 
-- Parse `git worktree list --porcelain`; the first `worktree` entry is the main/root worktree.
-- If the current source worktree path differs from that main/root worktree path and `git status --short --branch` shows a local branch, default the target to that current branch name. Example: from a linked worktree on `feature/<name>`, hand off to canonical `feature/<name>`.
-- Otherwise default the target to `develop`.
-- If the source is detached and no target was specified, default to `develop` because there is no branch name to canonicalize.
+- Parse `git worktree list --porcelain`; entries are separated by `worktree <path>` lines and may include `HEAD <sha>` and `branch refs/heads/<name>`.
+- If the source is not detached, the source path differs from the first/main worktree path, and `git status --short --branch` shows a local branch, default the target to that source branch name. Report: "Source is a linked worktree on `<branch>`, so defaulting target to `<branch>`."
+- If the source is detached, get the source `HEAD` SHA and find other worktree entries with the same `HEAD <sha>` and a `branch refs/heads/<name>` line.
+- If exactly one same-HEAD branch worktree exists, default the target to that branch. Report: "Source is detached at <sha>, but main/root worktree at the same HEAD is on `<branch>`, so defaulting target to `<branch>`." If the matching branch worktree is not the main/root worktree, name its path instead of "main/root worktree".
+- If multiple same-HEAD branch worktrees exist, stop and ask which branch to use. List the candidate branch names and worktree paths.
+- If no same-HEAD branch worktree exists, default the target to `develop`. Report: "Source is detached at <sha> and no same-HEAD branch worktree exists, so defaulting target to `develop`."
+- Do not default a detached source to `develop` before completing the same-HEAD branch worktree check.
+
+Example Codex linked-worktree case:
+
+```text
+worktree /repo
+HEAD abc1234
+branch refs/heads/feature/foo
+
+worktree /repo/.codex/worktrees/task
+HEAD abc1234
+detached
+```
+
+If the source path is `/repo/.codex/worktrees/task` and no target was specified, default to `feature/foo`, not `develop`, because the main/root worktree is on `feature/foo` at the same HEAD.
 
 ### 3) Resolve the target worktree
 
