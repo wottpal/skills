@@ -23,6 +23,7 @@ For publishing and maintenance, this repository is the canonical source of truth
 | `deep-research-firecrawl` | [skills/deep-research-firecrawl](skills/deep-research-firecrawl/) | Firecrawl-first deep research with selectable depth modes |
 | `code-editor-switch` | [skills/code-editor-switch](skills/code-editor-switch/) | macOS `duti` workflow to switch code/text/config default handlers to a target editor |
 | `date-fns` | [skills/date-fns](skills/date-fns/) | Practical date-fns v4 and native @date-fns/tz workflow with strict timezone package guidance |
+| `himalaya-v2` | [skills/himalaya-v2](skills/himalaya-v2/) | Pimalaya Himalaya v2 email CLI workflow based on `himalaya 2.0.0-alpha.1` (`f2306449278940c04768cd4ca0fa9fd7ca29c45b`, 2026-06-17) |
 | `jotai-nextjs` | [skills/jotai-nextjs](skills/jotai-nextjs/) | Jotai state management workflow with Next.js-focused SSR/hydration and migration guidance |
 | `readme-agents-writer` | [skills/readme-agents-writer](skills/readme-agents-writer/) | Write/refactor README.md + AGENTS.md + CLAUDE.md with strict symlink-triplet policy and verification-first workflows |
 | `sem-diff` | [skills/sem-diff](skills/sem-diff/) | Entity-level semantic Git diff, blame, dependency impact, and AI-ready context workflow using sem |
@@ -49,19 +50,22 @@ npx skills add https://github.com/wottpal/skills --skill date-fns -y -g
 # 5) Install the Jotai + Next.js skill
 npx skills add https://github.com/wottpal/skills --skill jotai-nextjs -y -g
 
-# 6) Install the Postgres tuning skill
+# 6) Install the Himalaya v2 skill
+npx skills add https://github.com/wottpal/skills --skill himalaya-v2 -y -g
+
+# 7) Install the Postgres tuning skill
 npx skills add https://github.com/wottpal/skills --skill use-the-index-luke -y -g
 
-# 7) Install the Slack Web API skill
+# 8) Install the Slack Web API skill
 npx skills add https://github.com/wottpal/skills --skill slack-web-api -y -g
 
-# 8) Install the README/AGENTS/CLAUDE writer skill
+# 9) Install the README/AGENTS/CLAUDE writer skill
 npx skills add https://github.com/wottpal/skills --skill readme-agents-writer -y -g
 
-# 9) Install the sem diff skill
+# 10) Install the sem diff skill
 npx skills add https://github.com/wottpal/skills --skill sem-diff -y -g
 
-# 10) Install the worktree handoff skill
+# 11) Install the worktree handoff skill
 npx skills add https://github.com/wottpal/skills --skill worktree-handoff -y -g
 ```
 
@@ -85,16 +89,19 @@ npx skills add /<path-to-repo>/skills --skill date-fns -y -g
 # 5) Install Jotai + Next.js skill from local files
 npx skills add /<path-to-repo>/skills --skill jotai-nextjs -y -g
 
-# 6) Install Slack Web API skill from local files
+# 6) Install Himalaya v2 skill from local files
+npx skills add /<path-to-repo>/skills --skill himalaya-v2 -y -g
+
+# 7) Install Slack Web API skill from local files
 npx skills add /<path-to-repo>/skills --skill slack-web-api -y -g
 
-# 7) Install README/AGENTS/CLAUDE writer skill from local files
+# 8) Install README/AGENTS/CLAUDE writer skill from local files
 npx skills add /<path-to-repo>/skills --skill readme-agents-writer -y -g
 
-# 8) Install sem-diff skill from local files
+# 9) Install sem-diff skill from local files
 npx skills add /<path-to-repo>/skills --skill sem-diff -y -g
 
-# 9) Install worktree-handoff skill from local files
+# 10) Install worktree-handoff skill from local files
 npx skills add /<path-to-repo>/skills --skill worktree-handoff -y -g
 ```
 
