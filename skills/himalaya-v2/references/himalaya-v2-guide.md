@@ -3,9 +3,10 @@
 ## Upstream Sources
 
 - Repository: `https://github.com/pimalaya/himalaya`
-- Primary docs: `README.md`, `MIGRATION.md`, `config.sample.toml`, `ARCHITECTURE.md`
+- Primary docs: [`README.md`](https://github.com/pimalaya/himalaya/blob/master/README.md), [`MIGRATION.md`](https://github.com/pimalaya/himalaya/blob/master/MIGRATION.md), [`config.sample.toml`](https://github.com/pimalaya/himalaya/blob/master/config.sample.toml), [`ARCHITECTURE.md`](https://github.com/pimalaya/himalaya/blob/master/ARCHITECTURE.md)
 - Baseline inspected: `himalaya 2.0.0-alpha.1` at commit `f2306449278940c04768cd4ca0fa9fd7ca29c45b` from `2026-06-17`
 - v2 status at baseline: documented on `master`, not yet the latest stable release
+- 1Password helper: `op-fast` from `https://github.com/cometkim/op-fast`; verify with `op-fast --help` because the project is young.
 
 When exact behavior matters, refresh the upstream clone and inspect `himalaya --help` from the installed binary. The README intentionally avoids exhaustive per-command reference; generated help is canonical.
 
@@ -87,87 +88,71 @@ jmap.auth.bearer.token.command = ["ortie", "token", "read", "fastmail"]
 gmail.auth.token.command = ["ortie", "access-token", "read", "gmail"]
 ```
 
-1Password CLI works because Himalaya only requires a command that prints the secret to stdout. Include `--no-newline`; include `--account` when the user has multiple 1Password accounts:
+For 1Password-backed IMAP/SMTP passwords, prefer `op-fast` over raw `op read` or custom session-token cache scripts. It caches previously fetched secrets in the OS keyring with configurable TTL and keeps the command shape close to `op`.
+
+Verify or install:
+
+```bash
+command -v op-fast >/dev/null || brew install cometkim/tap/op-fast
+op-fast --version
+```
+
+For one configured 1Password account:
 
 ```toml
 imap.sasl.plain.password.command = [
-  "op",
+  "op-fast",
   "read",
-  "--account",
-  "example.1password.com",
   "--no-newline",
   "op://Private/Email/password",
 ]
 
 smtp.sasl.plain.password.command = [
-  "op",
+  "op-fast",
   "read",
-  "--account",
-  "example.1password.com",
   "--no-newline",
   "op://Private/Email/password",
 ]
 ```
 
-Smoke-test secret references without leaking them:
-
-```bash
-op read --account example.1password.com --no-newline "op://Private/Email/password" >/dev/null
-```
-
-For repeated email reads, direct `op read` may trigger 1Password approval for every IMAP/SMTP command. Prefer a short-lived session wrapper and preflight it before running Himalaya commands:
-
-1. Run `op signin --account <account> --raw` only when no cached token works.
-2. Pass the token to `op read` with `--session <token>`.
-3. Cache the token in a `0600` file under `XDG_RUNTIME_DIR` / `TMPDIR`.
-4. Use a lock so concurrent Himalaya commands do not all run `op signin`.
-5. Expire proactively before 1Password does; 25 minutes is a practical default because 1Password sessions are still short-lived.
-
-Use the bundled installer so the helper is executable:
-
-```bash
-/path/to/himalaya-v2/scripts/install-op-read-cached.sh "$HOME/.local/bin"
-```
-
-Use an absolute helper path in Himalaya config when possible:
+For multiple 1Password accounts, set `OP_ACCOUNT` through `/usr/bin/env`. At `op-fast 0.1.1`, `read` supports `--no-newline` but not `--account` directly:
 
 ```toml
 imap.sasl.plain.password.command = [
-  "/Users/example/.local/bin/op-read-cached",
-  "example.1password.com",
+  "/usr/bin/env",
+  "OP_ACCOUNT=example.1password.com",
+  "/opt/homebrew/bin/op-fast",
+  "read",
+  "--no-newline",
   "op://Private/Email/password",
 ]
 
 smtp.sasl.plain.password.command = [
-  "/Users/example/.local/bin/op-read-cached",
-  "example.1password.com",
-  "op://Private/Email/password",
-]
-```
-
-The wrapper also accepts the common op-like shape if an existing config already uses it:
-
-```toml
-imap.sasl.plain.password.command = [
-  "/Users/example/.local/bin/op-read-cached",
-  "--account",
-  "example.1password.com",
+  "/usr/bin/env",
+  "OP_ACCOUNT=example.1password.com",
+  "/opt/homebrew/bin/op-fast",
+  "read",
   "--no-newline",
   "op://Private/Email/password",
 ]
 ```
 
-Preflight without leaking the secret:
+Smoke-test without leaking the secret:
 
 ```bash
-helper="$HOME/.local/bin/op-read-cached"
-test -x "$helper" || chmod 700 "$helper"
-"$helper" "example.1password.com" "op://Private/Email/password" >/dev/null
+OP_ACCOUNT=example.1password.com op-fast read --no-newline "op://Private/Email/password" >/dev/null
 ```
 
-This should reduce prompts to roughly once per valid 1Password session window. It does not create a long-lived login, and agents must not weaken file permissions or persist raw passwords. If the user still gets repeated biometric prompts, first check helper permissions, whether config points to this wrapper rather than `op`, and whether agents are running many Himalaya commands in parallel. `Permission denied` while spawning the secret command almost always means the helper is missing its executable bit; rerun the installer or `chmod 700` the helper.
+Optional `op-fast` cache tuning lives at `~/.config/op-fast/config.toml`:
 
-The wrapper uses `OP_READ_CACHED_TTL=1500` seconds and `OP_READ_CACHED_LOCK_TIMEOUT=180` seconds by default. Increase the lock timeout if user approval regularly takes longer.
+```toml
+default_ttl = "1day"
+
+[ttl]
+"op://Private/Email/*" = "12h"
+```
+
+Use `op-fast store list`, `op-fast store clear "op://..."`, or `op-fast store clear` when cached values need inspection or invalidation. Do not create local session-token cache scripts.
 
 Mailbox aliases are case-insensitive. The `inbox` alias is the implicit default for shared commands when `-m/--mailbox` is omitted. Account-level aliases override global aliases.
 
@@ -300,12 +285,12 @@ For scripts, prefer `--json`. Envelope JSON includes IDs, stable `message-id`, f
 Fast latest-email workflow:
 
 1. Run `himalaya account list` to identify the configured account/backends.
-2. If config uses a 1Password helper, check it exists and is executable before the first network command.
-3. Preflight the helper once with output redirected to `/dev/null`; this is where the user should see at most one biometric prompt.
+2. If config uses 1Password, verify `op-fast` is installed before the first network command.
+3. Preflight the secret reference once with output redirected to `/dev/null`; this is where the user should see any 1Password approval prompt.
 4. If the account is known-good, skip `account check`; it opens network/auth paths and can trigger secret prompts.
 5. List the latest envelopes with a small `--page-size` and `--json`.
 6. Deduplicate obvious notification clusters by sender/subject before reading bodies.
-7. Read selected message IDs serially with `message read --json`; do not parallelize message reads with 1Password-backed configs unless the lock-enabled helper is installed.
+7. Read selected message IDs serially with `message read --json`; avoid unnecessary parallel reads when 1Password approval is still pending.
 8. Pipe message JSON into `scripts/message-preview.py` for body previews instead of writing new ad hoc `jq`/HTML-stripping commands each time.
 
 Preview helper example:
@@ -341,9 +326,9 @@ himalaya mailbox list
 himalaya --backend imap envelope list --mailbox INBOX --page-size 5
 ```
 
-If account checks hang or prompt, suspect a locked secret provider such as 1Password rather than immediately changing the Himalaya config. Unlock or approve the provider, then rerun the same command.
+If account checks hang or prompt, suspect a locked secret provider such as 1Password rather than immediately changing the Himalaya config. Preflight `op-fast`, unlock or approve the provider, then rerun the same command.
 
-For routine inbox reads, avoid `account check`: it tests every matching backend and can invoke the secret helper for both IMAP and SMTP before doing any useful mail read.
+For routine inbox reads, avoid `account check`: it tests every matching backend and can invoke the secret command for both IMAP and SMTP before doing any useful mail read.
 
 ## v1 to v2 Migration Checklist
 
