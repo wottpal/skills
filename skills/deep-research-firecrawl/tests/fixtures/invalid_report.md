@@ -1,27 +1,27 @@
-# Research Report: Bad Report
+# Invalid fixture: bibliography entries do not count as body citations
+
+Mode: quick
 
 ## Executive Summary
 
-This is too short.
+This report has no actual source citation in its prose.
 
-**Primary Recommendation:** TBD
+## Method and Scope
 
-**Confidence Level:** High
+The fixture isolates a bibliography-only false positive.
 
----
+## Key Findings
 
-## Introduction
+The presence of a source in the bibliography is insufficient.
 
-Missing methodology section.
+## Counterevidence and Risks
 
----
+Claim support has not been established.
 
-## Main Analysis
+## Recommendations
 
-No citations here [99].
+Reject this structurally incomplete citation mapping.
 
----
+## Bibliography
 
-## Limitations & Caveats
-
-Some limitations TODO.
+[1] Fixture Organization (2024). "Uncited source". <https://example.com/source> Accessed: 2024-06-01.

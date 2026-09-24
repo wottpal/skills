@@ -1,354 +1,206 @@
 #!/usr/bin/env python3
-"""
-Report Validation Script
-Ensures research reports meet quality standards before delivery
-"""
+"""Offline structure checks for the skill's documented Markdown report format."""
 
 import argparse
-import re
-import sys
+from collections import Counter
+from dataclasses import dataclass, field
+from datetime import date, datetime, timezone
 from pathlib import Path
-from typing import List, Tuple, Dict
-
-
-class ReportValidator:
-    """Validates research report quality"""
-
-    def __init__(self, report_path: Path):
-        self.report_path = report_path
-        self.content = self._read_report()
-        self.errors: List[str] = []
-        self.warnings: List[str] = []
-
-    def _read_report(self) -> str:
-        """Read report file"""
-        try:
-            with open(self.report_path, 'r', encoding='utf-8') as f:
-                return f.read()
-        except Exception as e:
-            print(f"❌ ERROR: Cannot read report: {e}")
-            sys.exit(1)
-
-    def validate(self) -> bool:
-        """Run all validation checks"""
-        print(f"\n{'='*60}")
-        print(f"VALIDATING REPORT: {self.report_path.name}")
-        print(f"{'='*60}\n")
-
-        checks = [
-            ("Executive Summary", self._check_executive_summary),
-            ("Required Sections", self._check_required_sections),
-            ("Citations", self._check_citations),
-            ("Bibliography", self._check_bibliography),
-            ("Placeholder Text", self._check_placeholders),
-            ("Content Truncation", self._check_content_truncation),
-            ("Word Count", self._check_word_count),
-            ("Source Count", self._check_source_count),
-            ("Broken Links", self._check_broken_references),
-        ]
-
-        for check_name, check_func in checks:
-            print(f"⏳ Checking: {check_name}...", end=" ")
-            passed = check_func()
-            if passed:
-                print("✅ PASS")
-            else:
-                print("❌ FAIL")
-
-        self._print_summary()
-
-        return len(self.errors) == 0
-
-    def _check_executive_summary(self) -> bool:
-        """Check executive summary exists and is under 250 words"""
-        pattern = r'## Executive Summary(.*?)(?=##|\Z)'
-        match = re.search(pattern, self.content, re.DOTALL | re.IGNORECASE)
-
-        if not match:
-            self.errors.append("Missing 'Executive Summary' section")
-            return False
-
-        summary = match.group(1).strip()
-        word_count = len(summary.split())
-
-        if word_count > 250:
-            self.warnings.append(f"Executive summary too long: {word_count} words (should be ≤250)")
-
-        if word_count < 50:
-            self.warnings.append(f"Executive summary too short: {word_count} words (should be ≥50)")
-
-        return True
-
-    def _check_required_sections(self) -> bool:
-        """Check all required sections are present"""
-        required = [
-            "Executive Summary",
-            "Introduction",
-            "Main Analysis",
-            "Synthesis",
-            "Limitations",
-            "Recommendations",
-            "Bibliography",
-            "Methodology"
-        ]
-
-        # Recommended sections (warnings if missing, not errors)
-        recommended = [
-            "Counterevidence Register",
-            "Claims-Evidence Table"
-        ]
-
-        missing = []
-        for section in required:
-            if not re.search(rf'##.*{section}', self.content, re.IGNORECASE):
-                missing.append(section)
-
-        if missing:
-            self.errors.append(f"Missing sections: {', '.join(missing)}")
-            return False
-
-        # Check recommended sections (warnings only)
-        missing_recommended = []
-        for section in recommended:
-            if not re.search(rf'##.*{section}', self.content, re.IGNORECASE):
-                missing_recommended.append(section)
-
-        if missing_recommended:
-            self.warnings.append(f"Missing recommended sections (for academic rigor): {', '.join(missing_recommended)}")
-
-        return True
-
-    def _check_citations(self) -> bool:
-        """Check citation format and presence"""
-        # Find all citation references [1], [2], etc.
-        citations = re.findall(r'\[(\d+)\]', self.content)
-
-        if not citations:
-            self.errors.append("No citations found in report")
-            return False
-
-        unique_citations = set(citations)
-
-        if len(unique_citations) < 10:
-            self.warnings.append(f"Only {len(unique_citations)} unique sources cited (recommended: ≥10)")
-
-        # Check for consecutive citation numbers
-        citation_nums = sorted([int(c) for c in unique_citations])
-        if citation_nums:
-            max_citation = max(citation_nums)
-            expected = set(range(1, max_citation + 1))
-            missing = expected - set(citation_nums)
-
-            if missing:
-                self.warnings.append(f"Non-consecutive citation numbers, missing: {sorted(missing)}")
-
-        return True
-
-    def _check_bibliography(self) -> bool:
-        """Check bibliography exists, matches citations, and has no truncation placeholders"""
-        pattern = r'## Bibliography(.*?)(?=##|\Z)'
-        match = re.search(pattern, self.content, re.DOTALL | re.IGNORECASE)
-
-        if not match:
-            self.errors.append("Missing 'Bibliography' section")
-            return False
-
-        bib_section = match.group(1)
-
-        # CRITICAL: Check for truncation placeholders (2025 CiteGuard enhancement)
-        truncation_patterns = [
-            (r'\[\d+-\d+\]', 'Citation range (e.g., [8-75])'),
-            (r'Additional.*citations', 'Phrase "Additional citations"'),
-            (r'would be included', 'Phrase "would be included"'),
-            (r'\[\.\.\.continue', 'Pattern "[...continue"'),
-            (r'\[Continue with', 'Pattern "[Continue with"'),
-            (r'etc\.(?!\w)', 'Standalone "etc."'),
-            (r'and so on', 'Phrase "and so on"'),
-        ]
-
-        for pattern_re, description in truncation_patterns:
-            if re.search(pattern_re, bib_section, re.IGNORECASE):
-                self.errors.append(f"⚠️ CRITICAL: Bibliography contains truncation placeholder: {description}")
-                self.errors.append(f"   This makes the report UNUSABLE - complete bibliography required")
-                return False
-
-        # Count bibliography entries [1], [2], etc.
-        bib_entries = re.findall(r'^\[(\d+)\]', bib_section, re.MULTILINE)
-
-        if not bib_entries:
-            self.errors.append("Bibliography has no entries")
-            return False
-
-        # Check citation number continuity (no gaps)
-        bib_nums = sorted([int(n) for n in bib_entries])
-        if bib_nums:
-            expected = list(range(1, bib_nums[-1] + 1))
-            actual = bib_nums
-            missing = [n for n in expected if n not in actual]
-            if missing:
-                self.errors.append(f"Bibliography has gaps in numbering: missing {missing}")
-                return False
-
-        # Find citations in text
-        text_citations = set(re.findall(r'\[(\d+)\]', self.content))
-        bib_citations = set(bib_entries)
-
-        # Check all citations have bibliography entries
-        missing_in_bib = text_citations - bib_citations
-        if missing_in_bib:
-            self.errors.append(f"Citations missing from bibliography: {sorted(missing_in_bib)}")
-            return False
-
-        # Check for unused bibliography entries
-        unused = bib_citations - text_citations
-        if unused:
-            self.warnings.append(f"Unused bibliography entries: {sorted(unused)}")
-
-        return True
-
-    def _check_placeholders(self) -> bool:
-        """Check for placeholder text that shouldn't be in final report"""
-        placeholders = [
-            'TBD', 'TODO', 'FIXME', 'XXX',
-            '[citation needed]', '[needs citation]',
-            '[placeholder]', '[TODO]', '[TBD]'
-        ]
-
-        found_placeholders = []
-        for placeholder in placeholders:
-            if placeholder in self.content:
-                found_placeholders.append(placeholder)
-
-        if found_placeholders:
-            self.errors.append(f"Found placeholder text: {', '.join(found_placeholders)}")
-            return False
-
-        return True
-
-    def _check_content_truncation(self) -> bool:
-        """Check for content truncation patterns (2025 Progressive Assembly enhancement)"""
-        truncation_patterns = [
-            (r'Content continues', 'Phrase "Content continues"'),
-            (r'Due to length', 'Phrase "Due to length"'),
-            (r'would continue', 'Phrase "would continue"'),
-            (r'\[Sections \d+-\d+', 'Pattern "[Sections X-Y"'),
-            (r'Additional sections', 'Phrase "Additional sections"'),
-            (r'comprehensive.*word document that continues', 'Pattern "comprehensive...document that continues"'),
-        ]
-
-        for pattern_re, description in truncation_patterns:
-            if re.search(pattern_re, self.content, re.IGNORECASE):
-                self.errors.append(f"⚠️ CRITICAL: Content truncation detected: {description}")
-                self.errors.append(f"   Report is INCOMPLETE and UNUSABLE - regenerate with progressive assembly")
-                return False
-
-        return True
-
-    def _check_word_count(self) -> bool:
-        """Check overall report length"""
-        word_count = len(self.content.split())
-
-        if word_count < 500:
-            self.warnings.append(f"Report is very short: {word_count} words (consider expanding)")
-        # No upper limit warning - progressive assembly supports unlimited lengths
-
-        return True
-
-    def _check_source_count(self) -> bool:
-        """Check minimum source count"""
-        pattern = r'## Bibliography(.*?)(?=##|\Z)'
-        match = re.search(pattern, self.content, re.DOTALL | re.IGNORECASE)
-
-        if not match:
-            return True  # Already caught in bibliography check
-
-        bib_section = match.group(1)
-        bib_entries = re.findall(r'^\[(\d+)\]', bib_section, re.MULTILINE)
-
-        source_count = len(set(bib_entries))
-
-        if source_count < 10:
-            self.warnings.append(f"Only {source_count} sources (recommended: ≥10)")
-
-        return True
-
-    def _check_broken_references(self) -> bool:
-        """Check for broken internal references"""
-        # Find all markdown links [text](./path)
-        internal_links = re.findall(r'\[.*?\]\((\.\/.*?)\)', self.content)
-
-        broken = []
-        for link in internal_links:
-            # Remove anchor if present
-            link_path = link.split('#')[0]
-            full_path = self.report_path.parent / link_path
-
-            if not full_path.exists():
-                broken.append(link)
-
-        if broken:
-            self.errors.append(f"Broken internal links: {', '.join(broken)}")
-            return False
-
-        return True
-
-    def _print_summary(self):
-        """Print validation summary"""
-        print(f"\n{'='*60}")
-        print(f"VALIDATION SUMMARY")
-        print(f"{'='*60}\n")
-
-        if self.errors:
-            print(f"❌ ERRORS ({len(self.errors)}):")
-            for error in self.errors:
-                print(f"   • {error}")
-            print()
-
-        if self.warnings:
-            print(f"⚠️  WARNINGS ({len(self.warnings)}):")
-            for warning in self.warnings:
-                print(f"   • {warning}")
-            print()
-
-        if not self.errors and not self.warnings:
-            print("✅ ALL CHECKS PASSED - Report meets quality standards!\n")
-        elif not self.errors:
-            print("✅ VALIDATION PASSED (with warnings)\n")
+import re
+from urllib.parse import urlsplit
+
+
+SECTIONS = (
+    "Executive Summary", "Method and Scope", "Key Findings",
+    "Counterevidence and Risks", "Recommendations", "Bibliography",
+)
+MODES = {"quick", "standard", "deep", "ultradeep"}
+HEADING = re.compile(r"^ {0,3}##[ \t]+(.+?)(?:[ \t]+#+)?[ \t]*$", re.M)
+CITATION = re.compile(r"(?<![\\!])\[(\d+)\](?![(:])")
+ENTRY = re.compile(r"^ {0,3}\[(\d+)\][ \t]+(.+)$", re.M)
+METADATA = re.compile(r'^(.+?)\s+\(([^()]+)\)\.\s+"([^"]+)"\.', re.S)
+
+
+@dataclass
+class Source:
+    number: int
+    text: str
+    author: str = ""
+    published: str = ""
+    title: str = ""
+    url: str = ""
+    accessed: str = ""
+
+
+@dataclass
+class Report:
+    sections: list[tuple[str, str]]
+    body: str
+    sources: list[Source]
+    errors: list[str] = field(default_factory=list)
+
+
+def prose_only(text: str) -> str:
+    """Mask comments and code blocks; deliberately not a general Markdown parser."""
+    text = re.sub(r"<!--.*?(?:-->|\Z)", "", text, flags=re.S)
+    lines, fence = [], None
+    for line in text.splitlines():
+        marker = re.match(r"^ {0,3}(`{3,}|~{3,})(.*)$", line)
+        if fence:
+            if marker and marker[1][0] == fence[0] and len(marker[1]) >= len(fence) and not marker[2].strip():
+                fence = None
+            lines.append("")
+        elif marker:
+            fence = marker[1]
+            lines.append("")
+        elif line.startswith(("    ", "\t")):
+            lines.append("")
         else:
-            print("❌ VALIDATION FAILED - Please fix errors before delivery\n")
+            lines.append(line)
+    return "\n".join(lines)
 
 
-def main():
-    parser = argparse.ArgumentParser(
-        description="Validate research report quality",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
-Examples:
-  python validate_report.py --report report.md
-  python validate_report.py -r ~/.claude/research_output/research_report_20251104_153045.md
-        """
-    )
+def without_inline_code(text: str) -> str:
+    return re.sub(r"(`+)(?!`)(.*?)(?<!`)\1(?!`)", "", text, flags=re.S)
 
-    parser.add_argument(
-        '--report', '-r',
-        type=str,
-        required=True,
-        help='Path to research report markdown file'
-    )
 
+def parse_report(text: str) -> Report:
+    text = prose_only(text)
+    headings = list(HEADING.finditer(text))
+    sections = [(m[1].strip(), text[m.end():headings[i + 1].start() if i + 1 < len(headings) else len(text)])
+                for i, m in enumerate(headings)]
+    body = text[:headings[0].start()] if headings else text
+    sources, errors = [], []
+    for title, content in sections:
+        if title.casefold() != "bibliography":
+            body += "\n" + content
+            continue
+        matches = list(ENTRY.finditer(content))
+        if content[:matches[0].start() if matches else len(content)].strip():
+            errors.append("Bibliography must contain numbered entries, not introductory prose.")
+        for i, match in enumerate(matches):
+            raw = content[match.start():matches[i + 1].start() if i + 1 < len(matches) else len(content)]
+            raw = re.sub(r"^\s*\[\d+\]\s+", "", raw).strip()
+            source = Source(int(match[1]), raw)
+            metadata = METADATA.match(raw)
+            if metadata:
+                source.author, source.published, source.title = (v.strip() for v in metadata.groups())
+            url = re.search(r"https?://[^\s<>\"]+", raw)
+            source.url = url[0].rstrip(".,;") if url else ""
+            accessed = re.search(r"\bAccessed:\s*(\d{4}-\d{2}-\d{2})(?![\dT])", raw)
+            source.accessed = accessed[1] if accessed else ""
+            sources.append(source)
+    return Report(sections, body, sources, errors)
+
+
+def publication_date(value: str) -> date | None:
+    """Accept unknown dates, years, ISO dates, and ISO timestamps (normalize to UTC)."""
+    if value == "n.d.":
+        return None
+    if re.fullmatch(r"\d{4}", value):
+        return date(int(value), 1, 1)
+    if re.fullmatch(r"\d{4}-\d{2}-\d{2}", value):
+        return date.fromisoformat(value)
+    if not re.match(r"\d{4}-\d{2}-\d{2}T", value):
+        raise ValueError("Use an ISO date, timestamp, year, or n.d.")
+    timestamp = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    if timestamp.tzinfo:
+        timestamp = timestamp.astimezone(timezone.utc)
+    return timestamp.date()
+
+
+def valid_url(url: str) -> bool:
+    try:
+        parts = urlsplit(url)
+        return (parts.scheme in {"http", "https"} and bool(parts.hostname)
+                and not parts.username and not parts.password and not re.search(r"\s", url)
+                and (parts.port is None or 0 < parts.port < 65536))
+    except ValueError:
+        return False
+
+
+def check_sources(report: Report, today: date | None = None) -> tuple[list[str], list[str]]:
+    today = today or datetime.now(timezone.utc).date()
+    errors, warnings = list(report.errors), []
+    counts = Counter(s.number for s in report.sources)
+    if not counts:
+        errors.append("No bibliography entries found.")
+    for number, count in counts.items():
+        if count > 1:
+            errors.append(f"Duplicate bibliography ID [{number}].")
+    for source in report.sources:
+        label = f"[{source.number}]"
+        if source.number < 1:
+            errors.append(f"{label} Citation IDs must be positive integers.")
+        if not source.author or not source.title:
+            errors.append(f'{label} Expected: Author (date). "Title". <URL> Accessed: YYYY-MM-DD.')
+        if not valid_url(source.url):
+            errors.append(f"{label} Missing or invalid HTTP(S) source URL.")
+        try:
+            published = publication_date(source.published)
+            if published and published > today:
+                warnings.append(f"{label} Publication date is in the future; check forthcoming/version metadata.")
+        except ValueError:
+            errors.append(f"{label} Invalid publication date; use ISO date/timestamp, year, or n.d.")
+        try:
+            if date.fromisoformat(source.accessed) > today:
+                errors.append(f"{label} Access date cannot be in the future.")
+        except ValueError:
+            errors.append(f"{label} Missing or invalid Accessed: YYYY-MM-DD date.")
+    return errors, warnings
+
+
+def validate_report(text: str, today: date | None = None) -> tuple[list[str], list[str]]:
+    report = parse_report(text)
+    errors, warnings = check_sources(report, today)
+    titles = Counter(title.casefold() for title, _ in report.sections)
+    for title in SECTIONS:
+        if titles[title.casefold()] != 1:
+            errors.append(f"Expected exactly one level-two '{title}' section.")
+    for title, content in report.sections:
+        if title.casefold() in {s.casefold() for s in SECTIONS}:
+            visible = without_inline_code(content)
+            visible = re.sub(r"^\s*(?:#{1,6}\s+.*|[-*_]{3,})\s*$", "", visible, flags=re.M)
+            if not re.search(r"\w", visible):
+                errors.append(f"Empty section: {title}.")
+    body = without_inline_code(report.body)
+    modes = re.findall(r"^Mode:\s*(\w+)\s*$", body, re.M | re.I)
+    if len(modes) != 1 or modes[0].casefold() not in MODES:
+        errors.append("Include exactly one 'Mode: quick|standard|deep|ultradeep' line.")
+    cited = {int(n) for n in CITATION.findall(body)}
+    listed = {s.number for s in report.sources}
+    if not cited:
+        errors.append("No numeric citations found in report prose outside the bibliography.")
+    for number in sorted(cited - listed):
+        errors.append(f"Citation [{number}] has no bibliography entry.")
+    for number in sorted(listed - cited):
+        errors.append(f"Bibliography entry [{number}] is never cited in report prose.")
+    if re.search(r"\{\{[^}]+\}\}", prose_only(text)):
+        errors.append("Unfilled template placeholder: {{...}}.")
+    return errors, warnings
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("report", type=Path, nargs="?")
+    parser.add_argument("--report", "-r", type=Path, dest="report_option", help="Alias for the positional report path.")
     args = parser.parse_args()
+    if (args.report is None) == (args.report_option is None):
+        parser.error("Provide one report path, positionally or with --report/-r.")
+    report_path = args.report or args.report_option
+    try:
+        errors, warnings = validate_report(report_path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError) as exc:
+        print(f"ERROR: Cannot read report: {exc}")
+        return 2
+    for message in errors:
+        print(f"ERROR: {message}")
+    for message in warnings:
+        print(f"WARNING: {message}")
+    if not errors:
+        print("Structure checks passed. Claim support still requires source review.")
+    return 1 if errors else 0
 
-    report_path = Path(args.report)
 
-    if not report_path.exists():
-        print(f"❌ ERROR: Report file not found: {report_path}")
-        sys.exit(1)
-
-    validator = ReportValidator(report_path)
-    passed = validator.validate()
-
-    sys.exit(0 if passed else 1)
-
-
-if __name__ == '__main__':
-    main()
+if __name__ == "__main__":
+    raise SystemExit(main())
