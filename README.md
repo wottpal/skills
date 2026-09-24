@@ -4,6 +4,8 @@ Personal archive for custom agent skills by [Dennis Zoma](https://zoma.dev).
 
 ## Source of Truth For Edits
 
+This README is the canonical guide for contributors and agents. Keep `AGENTS.md` as a symlink to `README.md`; edit this file for shared guidance. Do not recreate a `CLAUDE.md` companion.
+
 When you are in this repository, always edit skills under this repo:
 
 - `skills/<skill-name>/...`
@@ -25,7 +27,7 @@ For publishing and maintenance, this repository is the canonical source of truth
 | `date-fns` | [skills/date-fns](skills/date-fns/) | Practical date-fns v4 and native @date-fns/tz workflow with strict timezone package guidance |
 | `himalaya-v2` | [skills/himalaya-v2](skills/himalaya-v2/) | Pimalaya Himalaya v2 email CLI workflow based on `himalaya 2.0.0-alpha.1` (`f2306449278940c04768cd4ca0fa9fd7ca29c45b`, 2026-06-17) |
 | `jotai-nextjs` | [skills/jotai-nextjs](skills/jotai-nextjs/) | Jotai state management workflow with Next.js-focused SSR/hydration and migration guidance |
-| `readme-agents-writer` | [skills/readme-agents-writer](skills/readme-agents-writer/) | Write/refactor README.md + AGENTS.md + CLAUDE.md with strict symlink-triplet policy and verification-first workflows |
+| `readme-agents-writer` | [skills/readme-agents-writer](skills/readme-agents-writer/) | Maintain a canonical README.md + AGENTS.md symlink with verified guidance and safe cleanup of legacy CLAUDE.md companions |
 | `sem-diff` | [skills/sem-diff](skills/sem-diff/) | Entity-level semantic Git diff, blame, dependency impact, and AI-ready context workflow using sem |
 | `slack-web-api` | [skills/slack-web-api](skills/slack-web-api/) | Slack Web API workflow for posting, searching, channel history/threads, and reactions |
 | `use-the-index-luke` | [skills/use-the-index-luke](skills/use-the-index-luke/) | Postgres indexing-first optimization workflow based on Use The Index, Luke |
@@ -33,94 +35,55 @@ For publishing and maintenance, this repository is the canonical source of truth
 
 ## Installation
 
+Requires npm and `npx`. Choose a skill name from the catalog above; the example installs `readme-agents-writer` globally.
 
 ```bash
-# 1) List skills from the published repository
-npx skills add https://github.com/wottpal/skills --list
+# List published skills
+npx skills add "https://github.com/wottpal/skills" --list
 
-# 2) Install the deep research skill
-npx skills add https://github.com/wottpal/skills --skill deep-research-firecrawl -y -g
-
-# 3) Install the code-editor-switch skill
-npx skills add https://github.com/wottpal/skills --skill code-editor-switch -y -g
-
-# 4) Install the date-fns skill
-npx skills add https://github.com/wottpal/skills --skill date-fns -y -g
-
-# 5) Install the Jotai + Next.js skill
-npx skills add https://github.com/wottpal/skills --skill jotai-nextjs -y -g
-
-# 6) Install the Himalaya v2 skill
-npx skills add https://github.com/wottpal/skills --skill himalaya-v2 -y -g
-
-# 7) Install the Postgres tuning skill
-npx skills add https://github.com/wottpal/skills --skill use-the-index-luke -y -g
-
-# 8) Install the Slack Web API skill
-npx skills add https://github.com/wottpal/skills --skill slack-web-api -y -g
-
-# 9) Install the README/AGENTS/CLAUDE writer skill
-npx skills add https://github.com/wottpal/skills --skill readme-agents-writer -y -g
-
-# 10) Install the sem diff skill
-npx skills add https://github.com/wottpal/skills --skill sem-diff -y -g
-
-# 11) Install the worktree handoff skill
-npx skills add https://github.com/wottpal/skills --skill worktree-handoff -y -g
+# Install one skill
+npx skills add "https://github.com/wottpal/skills" --skill "readme-agents-writer" -y -g
 ```
 
 ## Local Installation (for contributors)
 
-Use this only when developing or testing skills from a local clone.
+For development, use the local checkout so the installation includes uncommitted changes. Run from the repository root:
 
 ```bash
-# 1) List skills from your local checkout
-npx skills add /<path-to-repo>/skills --list
-
-# 2) Install a specific skill from local files
-npx skills add /<path-to-repo>/skills --skill use-the-index-luke -y -g
-
-# 3) Install code-editor-switch skill from local files
-npx skills add /<path-to-repo>/skills --skill code-editor-switch -y -g
-
-# 4) Install date-fns skill from local files
-npx skills add /<path-to-repo>/skills --skill date-fns -y -g
-
-# 5) Install Jotai + Next.js skill from local files
-npx skills add /<path-to-repo>/skills --skill jotai-nextjs -y -g
-
-# 6) Install Himalaya v2 skill from local files
-npx skills add /<path-to-repo>/skills --skill himalaya-v2 -y -g
-
-# 7) Install Slack Web API skill from local files
-npx skills add /<path-to-repo>/skills --skill slack-web-api -y -g
-
-# 8) Install README/AGENTS/CLAUDE writer skill from local files
-npx skills add /<path-to-repo>/skills --skill readme-agents-writer -y -g
-
-# 9) Install sem-diff skill from local files
-npx skills add /<path-to-repo>/skills --skill sem-diff -y -g
-
-# 10) Install worktree-handoff skill from local files
-npx skills add /<path-to-repo>/skills --skill worktree-handoff -y -g
+npx skills add "." --list
 ```
+
+Use the contributor workflow below to install the skill you are editing.
 
 ## Contributor Workflow (Canonical)
 
-Use this loop whenever you update a skill:
+1. Edit `skills/<skill-name>/...` in this repository, preserving unrelated worktree changes.
+2. Run the checks relevant to the change, described below.
+3. Reinstall that skill from the local checkout. Optionally compare the complete installed directory, including references and scripts.
+
+Run from the repository root, replacing the example skill name as needed:
 
 ```bash
-# 1) Edit the skill in this repo (source of truth)
-$EDITOR "/Users/zoma/Developer/wottpal/skills/skills/<skill-name>/SKILL.md"
+skill_name="readme-agents-writer"
+npx skills add "." --skill "$skill_name" -y -g
 
-# 2) Reinstall that skill from this local repository
-npx skills add "/Users/zoma/Developer/wottpal/skills" --skill "<skill-name>" -y -g
-
-# 3) Optional: compare installed copy against repo source
-diff -u \
-  "/Users/zoma/Developer/wottpal/skills/skills/<skill-name>/SKILL.md" \
-  "$HOME/.agents/skills/<skill-name>/SKILL.md"
+# Optional: compare the entire skill with the shared installed copy
+diff -qr "skills/$skill_name" "$HOME/.agents/skills/$skill_name"
 ```
+
+Review the installer's per-agent results; an empty diff confirms the shared installed copy matches the source.
+
+### Verification
+
+- For documentation edits, verify affected facts, paths, and links, then run `git diff --check` from the repository root.
+- When changing a skill's scripts, use its documented checks and focused fixtures. Run only workflows relevant to the change; inspection alone does not justify executing a live operation described by a skill.
+- When changing the root README/AGENTS layout or its helpers, run the read-only pair check below (Python 3.10+). It checks this root scope; other skill READMEs do not automatically need AGENTS companions.
+
+```bash
+python3 "skills/readme-agents-writer/scripts/check-doc-pairs.py" "."
+```
+
+For documentation writing or legacy companion cleanup, use [readme-agents-writer](skills/readme-agents-writer/SKILL.md). Report checks that could not be run and any unresolved discrepancies.
 
 ## Repository
 
