@@ -1,26 +1,26 @@
 # Low-Context Drafting Workflow (For Large Docs)
 
-When docs are large, do not jump directly to polished prose.
+Use this workflow for large restructures or migrations with several conflicting sources. For a small edit, keep a short outline in working context and edit directly.
 
 ## Create Temporary Planning Files
 
-Use a scratch directory:
+Use a unique scratch directory outside the repository:
 
 ```bash
-mkdir -p .tmp/readme-doc-plan
+doc_plan_dir="$(mktemp -d "${TMPDIR:-/tmp}/readme-doc-plan.XXXXXX")"
 ```
 
 Recommended files:
 
-- `.tmp/readme-doc-plan/facts.md`
+- `facts.md`
   - Verified facts only (paths, constants, versions, commands).
-- `.tmp/readme-doc-plan/gaps.md`
+- `gaps.md`
   - Unknowns and what must be verified.
-- `.tmp/readme-doc-plan/toc-options.md`
+- `toc-options.md`
   - 2-3 outline candidates with pros/cons.
-- `.tmp/readme-doc-plan/selected-outline.md`
+- `selected-outline.md`
   - Final section order with rationale.
-- `.tmp/readme-doc-plan/snippets.md`
+- `snippets.md`
   - Command blocks and short policy statements to reuse.
 
 ## Process
@@ -33,8 +33,8 @@ Recommended files:
 
 ## Lifecycle And Cleanup
 
-- Keep planning artifacts out of version control by default (`.tmp/` in `.gitignore` or local exclude).
-- Delete `.tmp/readme-doc-plan/` after the final docs are merged/applied.
+- Create these files inside the recorded `doc_plan_dir`; no repository ignore-rule changes are needed.
+- After applying the docs, remove only the scratch files and directory created for this task. Never clear a pre-existing planning directory or another agent's files.
 - Persist planning files only when explicitly requested; move selected artifacts to an intentional tracked path.
 
 ## Why This Helps

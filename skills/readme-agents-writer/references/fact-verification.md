@@ -1,93 +1,68 @@
-# Fact Verification Checklist (Mandatory)
+# Fact Verification Checklist
 
-Treat every statement as untrusted until confirmed from source files or commands.
-Prefer guarded checks so the workflow works across different stacks.
+For a small patch, verify affected claims and dependent references; expand the investigation if they reveal uncertainty or contradictions. For new documentation or a full rewrite, verify all factual claims, including retained ones. Existing documentation is evidence to investigate, not proof by itself.
 
-## Verify Paths And Files
+## Facts And Policy
 
-```bash
-rg --files | rg '(<path-or-file-pattern>)'
-test -e <path> && echo "exists"
-```
+- Descriptive claims (a command exists, a dependency is installed, a directory contains generated files) need current implementation evidence.
+- Prescriptive rules (do not edit generated files, use a particular package manager) derive from explicit user or repository policy. Existing violations do not make a rule obsolete.
+- When policy and implementation disagree, preserve the policy, correct separable factual details, and report the mismatch. Ask only if completing the task requires resolving a substantive policy conflict.
+- Do not promote an observed pattern into a mandatory convention without evidence that the repository intends it as policy.
 
-## Verify Variables / Constants / Flags
+## Paths And Names
 
-```bash
-rg -n --hidden --glob '!.git' '(<CONST_NAME>|<ENV_VAR>|<flag>)'
-```
-
-Check:
-
-- Name is exact (case-sensitive).
-- Definition and usage both exist.
-- Behavior matches documented meaning.
-
-## Verify Commands
+From the target repository root, substitute actual quoted paths and search terms:
 
 ```bash
-test -f package.json && rg -n '"scripts"\s*:' package.json
-test -f pyproject.toml && rg -n '^\[project\]|^\[tool\.' pyproject.toml
-test -f Makefile && rg -n '^[A-Za-z0-9_.-]+:' Makefile
+rg --files --hidden -g '!.git/**' -g '!node_modules/**' -g '!.venv/**'
+test -e "path/to/file"
+test -L "path/to/file"
+rg -n --hidden -g '!.git/**' -g '!node_modules/**' -g '!.venv/**' -- 'EXACT_NAME' .
 ```
 
-Check:
+- Check spelling, case, definitions, and actual usage.
+- `test -e` follows symlinks and fails for a dangling link; `test -L` identifies the link itself.
+- Resolve link targets before editing. Read through a valid link only after confirming its target is in scope.
+- Discovery may omit ignored paths. Inspect relevant known config directories explicitly rather than scanning dependency trees.
+- Future output paths may not exist yet; label them as outputs instead of pretending they are present inputs.
 
-- Command exists in scripts/task runner.
-- Command still runs in current repo.
-- Output semantics match documentation.
+## Commands
 
-## Verify Dependencies And Versions
+- Identify the actual task runner using manifests, lockfiles, configuration, and CI.
+- Read command definitions and note the required working directory and environment.
+- Prefer supported file- or package-scoped checks when they cover the change. Keep broader checks required by repository policy or CI, or needed for cross-package and integration behavior.
+- Verify that a focused invocation still loads the intended configuration and covers its claimed scope. Do not invent file arguments for tools that require project context.
+- Execute safe, relevant checks when practical; record their exit status and what they establish.
+- Never run deployments, publishing, production migrations, or deletion commands just to check a documentation example. Inspect definitions or use an established non-mutating validation mode instead.
+- Report an unavailable environment or skipped command accurately; do not turn missing tools into a successful check with `|| true`.
 
-JavaScript/TypeScript:
+## Dependencies And Versions
 
-```bash
-test -f package.json && rg -n '(<dep-name>|"dependencies"|"devDependencies"|"peerDependencies")' package.json
-test -f bun.lockb && command -v bun >/dev/null && bun pm ls <dep-name> || true
-test -f pnpm-lock.yaml && command -v pnpm >/dev/null && pnpm why <dep-name> || true
-test -f package-lock.json && command -v npm >/dev/null && npm ls <dep-name> --depth=0 || true
-test -f yarn.lock && command -v yarn >/dev/null && yarn why <dep-name> || true
-```
+- Use declared manifests and lockfiles for repository versions, not remembered defaults or whatever is globally installed.
+- Distinguish a manifest range, a locked version, and an installed version when the difference matters.
+- Detect current and older lockfile names (for example, both `bun.lock` and `bun.lockb`) rather than assuming one format.
+- Verify runtime usage before describing a dependency's purpose.
+- Check current official documentation when making external tool behavior or compatibility claims. Date those claims and link the source.
+- Do not upgrade dependencies just to make documentation say "latest." Describe the repository as it exists unless an upgrade is requested.
 
-Python:
+## Links, Endpoints, And Examples
 
-```bash
-test -f pyproject.toml && rg -n '(<dep-name>|^\[project\]|^\[tool.poetry\])' pyproject.toml
-rg -n '(<dep-name>)' requirements*.txt 2>/dev/null || true
-command -v uv >/dev/null && uv pip show <dep-name> || true
-command -v poetry >/dev/null && poetry show <dep-name> || true
-command -v pip >/dev/null && pip show <dep-name> || true
-```
+- Resolve local Markdown links relative to the document; after moving content, fix paths and heading anchors.
+- Check shared READMEs from each alias location as well as their canonical location. Prefer a local pair with explicit links if relative links cannot work for all consumers.
+- Verify referenced endpoints and payload shapes against implementation.
+- Label illustrative examples; do not present invented paths, commands, or environment variables as working project facts.
+- Avoid printing secrets when checking environment variable names or configuration.
 
-Check:
+## After Moves Or Renames
 
-- Dependency is still installed/declared.
-- Version range in docs is current.
-- Dependency is still actively used.
+- Search the affected repository for the old file paths, directory names, command names, and link targets, including relevant hidden configuration. Inspect neighboring READMEs, examples, scripts, templates, and CI consumers.
+- Update active references within the task's scope and report stale consumers outside it. Keep intentional historical references and migration examples when they are clearly labeled.
+- Recheck relative links from each supported alias location and confirm that instructions still apply to the intended subtree. Edit the canonical README once for its AGENTS symlink.
+- Record the search terms and any unresolved references in the final update or temporary working notes; do not create a permanent evidence file just for the search.
 
-## Toolchain Detection (Optional Quick Pass)
+## Final Pass
 
-```bash
-test -f bun.lockb && echo "bun"
-test -f pnpm-lock.yaml && echo "pnpm"
-test -f package-lock.json && echo "npm"
-test -f yarn.lock && echo "yarn"
-test -f pyproject.toml && echo "python-project"
-ls requirements*.txt >/dev/null 2>&1 && echo "requirements-txt"
-```
-
-## Verify URLs, Endpoints, And Entry Points
-
-```bash
-rg -n '(http|https|/api/|route|endpoint|main|entry)'
-```
-
-Check:
-
-- Endpoint/path exists in code.
-- Example payload shape matches current implementation.
-
-## Final Anti-Staleness Pass
-
-- Re-run critical searches after editing docs.
-- Remove or fix any doc claim you cannot verify quickly.
-- Prefer “not documented yet” over stale certainty.
+- Recheck facts affected by the edit or migration, including consumers of removed filenames.
+- Fix incorrect claims. Investigate useful but uncertain claims or mark the gap instead of silently deleting important operational guidance.
+- Review the diff for lost instructions, accidental policy changes, unrelated modifications, and broken links.
+- Report what was verified, what remains uncertain, and any command that was not run.

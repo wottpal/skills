@@ -1,6 +1,8 @@
-# Scope Patterns For README/AGENTS/CLAUDE Docs
+# Scope Patterns For README/AGENTS Docs
 
 Use this matrix to decide depth and section set.
+
+Each selected scope has one canonical README (directly or through the shared-doc exception) and an `AGENTS.md` symlink. Use the suggested sections for new docs or an explicit substantial rewrite. For small edits, preserve valid existing structure instead of retrofitting a template. Omit empty sections and avoid padding a small document to satisfy a template.
 
 ## 1) Root-Level Project Doc
 
@@ -20,9 +22,9 @@ Avoid:
 - Deep module internals that belong in local docs
 - Duplicating every sub-module API detail
 
-Minimal section contract:
+Suggested sections:
 
-- Required headings: `Overview`, `Scope`, `Setup`, `Commands`, `Architecture`, `Related Docs`
+- Core headings: `Overview`, `Scope`, `Setup`, `Commands`, `Architecture`, `Related Docs`
 - Optional headings: `Troubleshooting`, `Contributing`
 - Max heading depth: `###`
 
@@ -43,9 +45,9 @@ Avoid:
 - Repeating full root setup when unchanged
 - Cross-repo policies already documented globally
 
-Minimal section contract:
+Suggested sections:
 
-- Required headings: `Overview`, `Scope`, `Setup Differences`, `Commands`, `Integrations`, `Local Conventions`
+- Core headings: `Overview`, `Scope`, `Setup Differences`, `Commands`, `Integrations`, `Local Conventions`
 - Optional headings: `Troubleshooting`, `Release Notes`
 - Max heading depth: `###`
 
@@ -66,14 +68,16 @@ Avoid:
 - Full stack/setup walkthroughs
 - Unrelated infrastructure details
 
-Minimal section contract:
+Suggested sections:
 
-- Required headings: `Overview`, `Responsibility`, `File Map`, `Rules/Invariants`, `Commands/Tests`, `Related Docs`
+- Core headings: `Overview`, `Responsibility`, `File Map`, `Rules/Invariants`, `Commands/Tests`, `Related Docs`
 - Optional headings: `Examples`, `Known Gotchas`
 - Max heading depth: `####`
 
 ## Composition Rule
 
 - Root sets broad defaults.
-- Lower-level docs override locally when needed.
+- Put subtree-specific commands and invariants in a local pair only when they differ materially from root guidance.
+- State each rule's scope and any intended local exception explicitly. Loading and precedence vary by harness; do not rely on conflicting prose being resolved automatically.
 - Prefer links to canonical docs over duplicating text.
+- Shared targets must genuinely have the same operational scope. State command working directories unambiguously even when a README is reached from another directory.
