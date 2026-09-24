@@ -25,11 +25,10 @@ For publishing and maintenance, this repository is the canonical source of truth
 | `deep-research-firecrawl` | [skills/deep-research-firecrawl](skills/deep-research-firecrawl/) | Firecrawl-first deep research with selectable depth modes |
 | `code-editor-switch` | [skills/code-editor-switch](skills/code-editor-switch/) | macOS `duti` workflow to switch code/text/config default handlers to a target editor |
 | `date-fns` | [skills/date-fns](skills/date-fns/) | Practical date-fns v4 and native @date-fns/tz workflow with strict timezone package guidance |
-| `himalaya-v2` | [skills/himalaya-v2](skills/himalaya-v2/) | Pimalaya Himalaya v2 email CLI workflow based on `himalaya 2.0.0-alpha.1` (`f2306449278940c04768cd4ca0fa9fd7ca29c45b`, 2026-06-17) |
+| `himalaya-v2` | [skills/himalaya-v2](skills/himalaya-v2/) | Pimalaya Himalaya v2 email CLI workflow verified against stable v2.1.0, with version-aware commands and tested message previews |
 | `jotai-nextjs` | [skills/jotai-nextjs](skills/jotai-nextjs/) | Jotai state management workflow with Next.js-focused SSR/hydration and migration guidance |
 | `readme-agents-writer` | [skills/readme-agents-writer](skills/readme-agents-writer/) | Maintain a canonical README.md + AGENTS.md symlink with verified guidance and safe cleanup of legacy CLAUDE.md companions |
 | `sem-diff` | [skills/sem-diff](skills/sem-diff/) | Entity-level semantic Git diff, blame, dependency impact, and AI-ready context workflow using sem |
-| `slack-web-api` | [skills/slack-web-api](skills/slack-web-api/) | Slack Web API workflow for posting, searching, channel history/threads, and reactions |
 | `use-the-index-luke` | [skills/use-the-index-luke](skills/use-the-index-luke/) | Postgres indexing-first optimization workflow based on Use The Index, Luke |
 | `worktree-handoff` | [skills/worktree-handoff](skills/worktree-handoff/) | Worktree-aware handoff of all uncommitted and untracked changes onto a local target branch, defaulting to the current linked-worktree branch or `develop` |
 
@@ -109,7 +108,6 @@ skills/
 ## Attribution
 
 - `skills/deep-research-firecrawl` was bootstrapped from: `https://github.com/199-biotechnologies/claude-deep-research-skill`
-- `skills/slack-web-api` was originally put together by [Felix Vemmer](https://github.com/feliche93)
 - `skills/use-the-index-luke` was originally put together by [Felix Vemmer](https://github.com/feliche93)
 
 ## Copyright and source notice

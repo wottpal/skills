@@ -1,77 +1,60 @@
-# Himalaya v2 Guide
+# Himalaya v2 guide
 
-## Upstream Sources
+## Verified baseline and source hierarchy
 
-- Repository: `https://github.com/pimalaya/himalaya`
-- Primary docs: [`README.md`](https://github.com/pimalaya/himalaya/blob/master/README.md), [`MIGRATION.md`](https://github.com/pimalaya/himalaya/blob/master/MIGRATION.md), [`config.sample.toml`](https://github.com/pimalaya/himalaya/blob/master/config.sample.toml), [`ARCHITECTURE.md`](https://github.com/pimalaya/himalaya/blob/master/ARCHITECTURE.md)
-- Baseline inspected: `himalaya 2.0.0-alpha.1` at commit `f2306449278940c04768cd4ca0fa9fd7ca29c45b` from `2026-06-17`
-- v2 status at baseline: documented on `master`, not yet the latest stable release
-- 1Password helper: `op-fast` from `https://github.com/cometkim/op-fast`; verify with `op-fast --help` because the project is young.
+Verified **2026-09-24** against the official **v2.1.0** release binary (`ca88bee08ad2e92127b46dc6200d1e8201885156`, released 2026-08-16), its command help, tagged source, and synthetic Maildir messages. The installed `himalaya` may still be an alpha; check its version before applying these examples.
 
-When exact behavior matters, refresh the upstream clone and inspect `himalaya --help` from the installed binary. The README intentionally avoids exhaustive per-command reference; generated help is canonical.
+Primary references:
 
-## Installation
+- [Latest release](https://github.com/pimalaya/himalaya/releases/latest) for installation freshness.
+- [v2.1.0 release notes](https://github.com/pimalaya/himalaya/releases/tag/v2.1.0) and [migration guide](https://github.com/pimalaya/himalaya/blob/v2.1.0/MIGRATION.md).
+- Tagged [CLI](https://github.com/pimalaya/himalaya/blob/v2.1.0/src/cli.rs), [config sample](https://github.com/pimalaya/himalaya/blob/v2.1.0/config.sample.toml), and [feature declarations](https://github.com/pimalaya/himalaya/blob/v2.1.0/Cargo.toml).
+- Shared [read](https://github.com/pimalaya/himalaya/blob/v2.1.0/src/shared/message/read.rs), [delete](https://github.com/pimalaya/himalaya/blob/v2.1.0/src/shared/message/delete.rs), [backend dispatch](https://github.com/pimalaya/himalaya/blob/v2.1.0/src/shared/client.rs), and [envelope JSON fields](https://github.com/pimalaya/himalaya/blob/v2.1.0/src/email/envelope.rs).
 
-For v2, prefer source or workflow artifacts until a v2 release exists:
+Prefer help from the actual binary and registered command definitions over old README snippets or unused source files. For example, some documentation still describes a printing-only wizard, while v2.1.0's wizard writes the config; native IMAP commands are flat despite old `imap/mailbox/` source paths. Do not assume unreleased `master` features (such as newer protocol additions) are available in a stable build.
 
-```bash
-cargo install --locked --git https://github.com/pimalaya/himalaya.git
-```
+## Installation and feature selection
 
-`cargo install` places the binary under Cargo's bin directory, usually `~/.cargo/bin`. If `himalaya` is not found after a successful install, check `PATH` before reinstalling.
+v2 is released. Prefer the current stable release appropriate for the platform; package-manager versions can lag. Check the [official installation instructions](https://github.com/pimalaya/himalaya#installation), release notes, and the installed version before choosing a method. Avoid an unpinned development-branch install as the default recommendation.
 
-Verify the installed binary and compiled feature set:
+For a reproducible source build of the verified baseline:
 
 ```bash
-himalaya --version
+cargo install --locked --git https://github.com/pimalaya/himalaya.git --tag v2.1.0
 ```
 
-At the inspected baseline, a default source build reported:
+Refresh the tag for a newer verified release when appropriate. Feature-limited builds can append `--no-default-features --features imap,smtp,rustls-ring`. Verify the Rust version required by that tag. Cargo normally writes to `~/.cargo/bin`; inspect `command -v himalaya` and `himalaya --version` to detect an older binary earlier on PATH before reinstalling.
 
-```text
-himalaya v2.0.0-alpha.1 +rustls-ring +smtp +gmail +jmap +imap +m2dir
-```
+The v2.1.0 default release includes IMAP, JMAP, Gmail, Microsoft Graph, Maildir, m2dir, pimdir, and SMTP with rustls-ring. `--backend` selects a backend only for shared commands. Native commands always address their own protocol. Pimdir is a shared backend over the sync engine's local store, not a `himalaya pimdir` command; writes there stage replica mutations that can later sync.
 
-Feature-limited install example:
+## Config loading and wizard
 
-```bash
-cargo install --locked --git https://github.com/pimalaya/himalaya.git \
-  --no-default-features \
-  --features imap,smtp,rustls-ring
-```
+`-c/--config` overrides `HIMALAYA_CONFIG` in v2.1.0. With neither supplied, the documented default search order is:
 
-Package managers such as Homebrew, Scoop, distro packages, and the release installer may install stable v1 until v2 ships. Verify with `himalaya --version`.
+1. `$XDG_CONFIG_HOME/himalaya/config.toml`
+2. `$HOME/.config/himalaya/config.toml`
+3. `$HOME/.himalayarc`
 
-## Config Loading
+Multiple paths use a colon delimiter; the first is the base, and later files deep-merge over it. Track the active paths before editing, since an overlay can override the base file.
 
-Default config search order:
+`himalaya configure` (alias `wizard`) runs interactive discovery and writes/appends the chosen account to the configured file. Discovery can probe remote services and prompt for credentials. A bare first-run invocation can offer the wizard when interactive; scripts must use explicit commands, an existing config, and JSON where needed. `account list` and `account check` inspect existing accounts; stable v2.1.0 has no `account configure` subcommand. Inspect the result of wizard output and account names instead of assuming `-a` renames an existing account.
 
-- `$XDG_CONFIG_HOME/himalaya/config.toml`
-- `$HOME/.config/himalaya/config.toml`
-- `$HOME/.himalayarc`
-
-Use `-c <PATH>` to override. Multiple paths can be passed with `:`; the first path is the base and later files deep-merge on top.
-
-Run `himalaya` with no config to launch the wizard. The wizard discovers account settings with PACC, Thunderbird Autoconfiguration, then RFC 6186 SRV. Use `himalaya account configure <name>` to reconfigure or add an account later.
-
-## TOML Shape
-
-Accounts live under `[accounts.<name>]`. Use `default = true` for the default account. Global config and account config can both define rendering options, mailbox aliases, downloads dir, and backend blocks.
-
-Core backend keys:
+Accounts use `[accounts.<name>]`; quote full email names. Account settings inherit global defaults, then override them. A minimal IMAP/SMTP example (replace all provider values):
 
 ```toml
-[accounts.example]
+[accounts."person@example.com"]
 default = true
+email = "person@example.com"
+display-name = "Example Person"
 
 imap.server = "imaps://imap.example.com:993"
-imap.sasl.plain.username = "user@example.com"
-imap.sasl.plain.password.command = "pass show example"
+imap.sasl.plain.username = "person@example.com"
+imap.sasl.plain.password.command = ["pass", "show", "mail/example"]
 
 smtp.server = "smtp://smtp.example.com:587"
 smtp.starttls = true
-smtp.sasl.plain.username = "user@example.com"
-smtp.sasl.plain.password.command = "pass show example"
+smtp.sasl.plain.username = "person@example.com"
+smtp.sasl.plain.password.command = ["pass", "show", "mail/example"]
 
 mailbox.alias.inbox = "INBOX"
 mailbox.alias.sent = "Sent"
@@ -79,267 +62,117 @@ mailbox.alias.drafts = "Drafts"
 mailbox.alias.trash = "Trash"
 ```
 
-Secrets can be raw for local experiments, but production guidance should use command-backed secrets:
+Mailbox aliases are case-insensitive. With no `-m`, current shared commands require the configured inbox alias; do not assume every provider has an `INBOX` default. Prefer explicit mailbox scope. v2.1.0 supports `email`, `display-name`, `signature`, and `signature-delim` at global/account level; do not copy earlier migration advice that removed all identity fields.
+
+## Secrets and provider differences
+
+Use one secret-command assignment per field; examples below are alternatives, not duplicate keys in one table. Never print its returned value during a check.
+
+Current [Ortie](https://github.com/pimalaya/ortie) uses `token show` with account selection:
 
 ```toml
-imap.sasl.plain.password.command = "pass show example"
-imap.sasl.plain.password.command = ["pass", "show", "example"]
-jmap.auth.bearer.token.command = ["ortie", "token", "read", "fastmail"]
-gmail.auth.token.command = ["ortie", "access-token", "read", "gmail"]
+jmap.auth.bearer.token.command = ["ortie", "token", "show", "-a", "fastmail"]
+gmail.auth.token.command = ["ortie", "token", "show", "-a", "gmail"]
+msgraph.auth.token.command = ["ortie", "token", "show", "-a", "msgraph"]
 ```
 
-For 1Password-backed IMAP/SMTP passwords, prefer `op-fast` over raw `op read` or custom session-token cache scripts. It caches previously fetched secrets in the OS keyring with configurable TTL and keeps the command shape close to `op`.
+Himalaya delegates token acquisition/refresh to the external helper. Verify the installed helper's `--help`; the older `ortie token read` and `ortie access-token read` forms are not current guidance.
 
-Verify or install:
-
-```bash
-command -v op-fast >/dev/null || brew install cometkim/tap/op-fast
-op-fast --version
-```
-
-For one configured 1Password account:
+For existing 1Password-backed setups, retain [op-fast](https://github.com/cometkim/op-fast), which caches secret values in the OS keyring. Check `op-fast --version` and `op-fast read --help`; do not install or change a secret helper merely to inspect mail. At the locally verified 0.1.1 CLI, `read` accepts `--no-newline` but no direct `--account`; select through `OP_ACCOUNT`:
 
 ```toml
 imap.sasl.plain.password.command = [
-  "op-fast",
-  "read",
-  "--no-newline",
-  "op://Private/Email/password",
-]
-
-smtp.sasl.plain.password.command = [
-  "op-fast",
-  "read",
-  "--no-newline",
-  "op://Private/Email/password",
+  "/usr/bin/env", "OP_ACCOUNT=example.1password.com",
+  "op-fast", "read", "--no-newline", "op://Private/Email/password",
 ]
 ```
 
-For multiple 1Password accounts, set `OP_ACCOUNT` through `/usr/bin/env`. At `op-fast 0.1.1`, `read` supports `--no-newline` but not `--account` directly:
-
-```toml
-imap.sasl.plain.password.command = [
-  "/usr/bin/env",
-  "OP_ACCOUNT=example.1password.com",
-  "/opt/homebrew/bin/op-fast",
-  "read",
-  "--no-newline",
-  "op://Private/Email/password",
-]
-
-smtp.sasl.plain.password.command = [
-  "/usr/bin/env",
-  "OP_ACCOUNT=example.1password.com",
-  "/opt/homebrew/bin/op-fast",
-  "read",
-  "--no-newline",
-  "op://Private/Email/password",
-]
-```
-
-Smoke-test without leaking the secret:
+Use an absolute helper path only when the environment requires it, and discover that path rather than assuming `/opt/homebrew/bin`. If auth needs troubleshooting, preflight the configured reference once:
 
 ```bash
-OP_ACCOUNT=example.1password.com op-fast read --no-newline "op://Private/Email/password" >/dev/null
+OP_ACCOUNT='example.1password.com' op-fast read --no-newline 'op://Private/Email/password' >/dev/null
 ```
 
-Optional `op-fast` cache tuning lives at `~/.config/op-fast/config.toml`:
+On secret rotation, invalidate only the relevant cached reference using the installed helper's supported command. Do not clear the entire cache or create custom session-token files as a routine repair.
 
-```toml
-default_ttl = "1day"
+Provider notes, grounded in the [tagged config](https://github.com/pimalaya/himalaya/blob/v2.1.0/config.sample.toml) and [provider examples](https://github.com/pimalaya/himalaya/blob/v2.1.0/README.md#configuration):
 
-[ttl]
-"op://Private/Email/*" = "12h"
-```
+- **Gmail:** IMAP/SMTP password auth normally needs an eligible app password, not the account password. OAuth is an alternative; the REST backend uses `gmail.auth.token.command`. Labels and localized special mailbox names must be discovered, not assumed. Native `gmail messages list -q '...'` accepts Gmail query syntax.
+- **Outlook/Microsoft 365:** use OAuth with IMAP/SMTP or `msgraph.auth.token.command` for Microsoft Graph. Verify account/tenant permissions and available protocols; do not fall back to basic authentication.
+- **iCloud:** use an app-specific password and the provider's documented IMAP/SMTP usernames, which can differ.
+- **Proton:** use Bridge's local endpoints, generated password, and certificate configuration. Do not substitute the Proton account password or disable certificate checks as a quick fix.
+- **JMAP/Fastmail:** configure `jmap.server` and exactly one auth style (`header`, `bearer`, or `basic`). JMAP sending requires `jmap.identity-id` and `jmap.drafts-mailbox-id`; inspect `jmap identity get` and `jmap mailbox query --role drafts` for discovery.
 
-Use `op-fast store list`, `op-fast store clear "op://..."`, or `op-fast store clear` when cached values need inspection or invalidation. Do not create local session-token cache scripts.
+## Current command shapes
 
-Mailbox aliases are case-insensitive. The `inbox` alias is the implicit default for shared commands when `-m/--mailbox` is omitted. Account-level aliases override global aliases.
-
-## Provider Notes
-
-Gmail over IMAP/SMTP:
-
-- Use an app password for SASL PLAIN when using IMAP/SMTP.
-- Gmail labels appear as IMAP mailboxes; quote names like `[Gmail]/Drafts` in shells or define aliases.
-- Gmail's all-mail archive is typically `[Gmail]/All Mail`.
-
-Gmail REST API backend:
-
-- Configure `gmail.auth.token.command`; Himalaya does not refresh tokens itself.
-- Select via shared commands with `--backend gmail`, or use the native `gmail` command.
-
-Outlook:
-
-- Basic authentication is retired. Use OAuth through `oauthbearer` or `xoauth2` with an external token helper such as `ortie`.
-
-iCloud Mail:
-
-- Use an app-specific password.
-- IMAP username is commonly the local part of the iCloud address; SMTP username is the full address.
-
-Proton Mail:
-
-- Run Proton Bridge and point IMAP/SMTP at the local Bridge endpoints.
-- Use the Bridge-generated password, not the Proton account password.
-
-JMAP:
-
-- `jmap.server` can be a bare host for discovery or a full session URL.
-- Choose exactly one auth style: `header`, `bearer`, or `basic`.
-- JMAP sending needs `jmap.identity-id` and `jmap.drafts-mailbox-id`; discover them with `himalaya jmap identity get` and `himalaya jmap mailboxes query --role drafts`.
-
-## Shared Commands
-
-Shared commands map to IMAP, JMAP, Gmail, Maildir, m2dir, or SMTP only when the operation is supported by that backend.
+Use the chosen account and relevant mailbox on actual operations. These read-oriented examples use the placeholder account `example`:
 
 ```bash
-himalaya --backend imap mailbox list
-himalaya mailbox list
-himalaya envelope list -m INBOX
-himalaya envelope search from alice and after 2026-01-01 order by date desc
-himalaya flag set -m INBOX --flag seen --flag flagged 42
-himalaya message copy --from INBOX --to Archive 42
-himalaya message move --from INBOX --to Trash 42
-himalaya attachment list -m INBOX 42
-himalaya attachment download -m INBOX 42 --dir ./attachments
+himalaya -a 'example' imap status 'INBOX'
+himalaya -a 'example' jmap mailbox query --role drafts
+himalaya -a 'example' jmap identity get
+himalaya -a 'example' gmail profile get
+himalaya -a 'example' gmail labels list
+himalaya -a 'example' gmail messages list -q 'from:alice is:unread'
+himalaya -a 'example' msgraph mail-folders list
+himalaya -a 'example' maildir list
 ```
 
-`envelope search` uses Himalaya's query DSL, not Gmail's native query language. Backends may reject unsupported clauses. At the inspected baseline, IMAP search uses server-side `UID SORT`, so servers without SORT may reject it.
+In v2.1.0, IMAP is flat: `imap select`, `imap status`, `imap fetch`, `imap expunge`, etc. `imap mailbox ...` is obsolete. SMTP uses `smtp send`, not `smtp messages send`. JMAP uses singular `mailbox`. Check each command's help instead of extrapolating aliases.
 
-## Protocol Commands
+Shared `envelope list` orders by date descending and paginates from page 1. Shared `envelope search` has its own DSL; Gmail/Graph require native queries instead. IMAP can fall back to client-side sorting when SORT is unavailable (`imap.sort.fallback` overrides detection); do not repeat the alpha-era claim that all servers must support UID SORT. Avoid unbounded body searches when metadata filters suffice.
 
-Use protocol commands when the shared API is too narrow:
+## JSON and identifiers
+
+Envelope JSON is `{ "envelopes": [...] }`. Shared fields use kebab-case, including `message-id`, `in-reply-to`, and `has-attachment`; inspect actual JSON before scripting. Message-ID headers are correlation hints, not unique backend IDs. IMAP UIDs can change after mailbox recreation or a move; native `--seq` selectors are sequence numbers and can shift after expunge.
+
+Parsed `message read --json` returns a mail-parser message object: `text_body` / `html_body` contain **zero-based indexes into `parts`**, whose bodies include `Text`, `Html`, `Multipart`, and attachment variants. The attachment CLI's displayed part IDs are **one-based MIME positions** in v2.1.0 and can have gaps. They are distinct from the message's own backend ID.
+
+`message read --raw` writes RFC 5322 bytes. In v2.1.0 it can combine with `--json`, producing `{ "message": "raw RFC 5322 text" }`; the older alpha rejected that combination. Use raw output for backups, and parsed JSON for the preview helper. [Verification](verification.md) documents supported input shapes and preview limits.
+
+## Prepare, authorize, then mutate
+
+The main skill defines authorization and backup requirements. Example command shapes below are for already reviewed, authorized targets; they are not routine verification commands:
 
 ```bash
-himalaya imap mailbox select INBOX
-himalaya imap mailbox status INBOX
-himalaya imap mailbox subscribe INBOX
-
-himalaya jmap mailboxes query --role drafts
-himalaya jmap identity get
-himalaya jmap vacation get
-
-himalaya gmail profile get
-himalaya gmail labels list
-himalaya gmail messages list
-
-himalaya maildir list
-himalaya maildir create Archive
-himalaya m2dir list
-
-himalaya smtp messages send < message.eml
+himalaya -a 'example' --backend imap flag add -m 'INBOX' --flag seen '42'
+himalaya -a 'example' --backend imap message move --from 'INBOX' --to 'Archive' '42'
+himalaya -a 'example' --backend imap message delete -m 'INBOX' '42'
+himalaya -a 'example' --backend imap attachment download -m 'INBOX' '42' '3' --dir '/agreed/output/directory'
 ```
 
-Protocol commands ignore `--backend`.
+`message delete` resolves the backend's native trash first, then the configured trash alias, and errors if neither is available. Outside trash it moves; inside trash it attempts permanent removal. Read its JSON `action` (`moved-to-trash`, `deleted`, or `flagged`) and `count`. An IMAP server without UIDPLUS can leave messages flagged pending an expunge; do not escalate to a mailbox-wide expunge without authorization for every affected message. Local pimdir mutations can propagate during sync.
 
-## Composing and Sending
-
-Simple messages can use built-in flags:
+Compose to a private, unique draft path without sending:
 
 ```bash
-himalaya message compose \
-  --from me@example.org \
-  --to you@example.org \
-  --subject "Hello" \
-  --body "Hi!" \
-  --send
+umask 077
+draft_file="$(mktemp '/tmp/himalaya-draft.XXXXXX')"
+himalaya -a 'example' message compose \
+  --from 'me@example.org' --to 'you@example.org' \
+  --subject 'Hello' --body 'Hi!' > "$draft_file"
 ```
 
-For richer MIME, editor-driven composition, signing, encryption, replies, and forwards, use `mml` or another standalone composer and feed the resulting RFC 5322 message to Himalaya.
+Check the compose command's exit status and inspect the entire draft before sending. Composing may initialize configured backends; it is not a promise of zero network activity. For rich MIME or editor use, a standalone composer can write the draft file with a real TTY. Never pipe or use process substitution directly into a sender during draft preparation.
 
-Good patterns:
+After the exact recipients/content and send operation are authorized:
 
 ```bash
-mml compose /tmp/draft.eml && himalaya message send /tmp/draft.eml
-mml compose >(himalaya message send)
-himalaya message read 42 | mml reply >(himalaya message send)
-himalaya message add -m drafts --flag draft < message.eml
-himalaya message send --save sent < message.eml
+himalaya -a 'example' message send "$draft_file"
 ```
 
-Avoid:
+`--save '<mailbox>'` explicitly requests a stored copy. v2.1.0 saves before sending when both are requested; a send failure can leave a saved copy. A timeout can also leave delivery uncertain. Inspect the outcome before retrying to avoid duplicate sends/copies. Native SMTP additionally requires envelope addresses (`smtp send --mail-from ... --rcpt-to ...`), independently of RFC 5322 headers.
 
-```bash
-mml compose | himalaya message send
-```
+## Validation, diagnostics, and migration
 
-That shape can hang because an editor inherits a pipe instead of a terminal.
+After an authorized config change, start with `account list --json` to check loading. Then run `himalaya -a '<account>' --backend '<backend>' account check` only when that connection check is needed; it can prompt for secrets and contact services. Finish with a bounded mailbox/envelope read. Do not use all-account checks for routine inbox reads.
 
-## Reading and Scripting
+Use `--log debug` or `--log trace` only for a concrete issue. Logs go to stderr unless `--log-file` is set; store them privately, redact mail/auth details, and avoid printing secret-command output. `NO_COLOR=1` controls colors. Do not redirect errors away merely to make a failed operation appear successful.
 
-```bash
-himalaya --backend imap envelope list -m INBOX --page-size 10 --json
-himalaya --backend imap message read -m INBOX 42 --json
-himalaya --backend imap message read -m INBOX 42 --raw
-```
+Migration reminders:
 
-Reading is side-effect-free: it should not mark messages as seen. Mark explicitly:
-
-```bash
-himalaya flag add -m INBOX --flag seen 42
-```
-
-For scripts, prefer `--json`. Envelope JSON includes IDs, stable `message-id`, flags, subject, addresses, date, size, and attachment presence.
-
-Fast latest-email workflow:
-
-1. Run `himalaya account list` to identify the configured account/backends.
-2. If config uses 1Password, verify `op-fast` is installed before the first network command.
-3. Preflight the secret reference once with output redirected to `/dev/null`; this is where the user should see any 1Password approval prompt.
-4. If the account is known-good, skip `account check`; it opens network/auth paths and can trigger secret prompts.
-5. List the latest envelopes with a small `--page-size` and `--json`.
-6. Deduplicate obvious notification clusters by sender/subject before reading bodies.
-7. Read selected message IDs serially with `message read --json`; avoid unnecessary parallel reads when 1Password approval is still pending.
-8. Pipe message JSON into `scripts/message-preview.py` for body previews instead of writing new ad hoc `jq`/HTML-stripping commands each time.
-
-Preview helper example:
-
-```bash
-himalaya -a example --backend imap message read -m INBOX 42 --json \
-  | python3 /path/to/himalaya-v2/scripts/message-preview.py --chars 3000 --urls
-```
-
-The helper handles top-level `text_body` / `html_body` values plus MIME `parts[].body.Text` / `parts[].body.Html`, including string arrays and HTML-heavy notifications.
-
-## Debugging
-
-Use:
-
-```bash
-himalaya --log trace mailbox list
-himalaya --log trace --log-file /tmp/himalaya.log mailbox list
-RUST_BACKTRACE=1 himalaya --log debug account check
-NO_COLOR=1 himalaya mailbox list
-```
-
-Logs are for diagnostics. Structured command results should come from stdout with `--json`.
-
-## Setup Validation
-
-After creating or editing config, validate in increasing scope:
-
-```bash
-himalaya account list
-himalaya account check
-himalaya mailbox list
-himalaya --backend imap envelope list --mailbox INBOX --page-size 5
-```
-
-If account checks hang or prompt, suspect a locked secret provider such as 1Password rather than immediately changing the Himalaya config. Preflight `op-fast`, unlock or approve the provider, then rerun the same command.
-
-For routine inbox reads, avoid `account check`: it tests every matching backend and can invoke the secret command for both IMAP and SMTP before doing any useful mail read.
-
-## v1 to v2 Migration Checklist
-
-- Replace `--output json` with `--json`.
-- Replace `--folder` / `-f` with `--mailbox` / `-m`.
-- Rename folder concepts to mailbox concepts.
-- Use `envelope search` for filtered searches; do not rely on v1 `list` search behavior.
-- Use protocol commands for mailbox create/delete/expunge/purge or other backend-native operations.
-- Replace native keyring config with command-backed secrets.
-- Replace built-in OAuth flow expectations with external token helpers.
-- Replace interactive template/composer assumptions with `mml` or another external composer.
-- Use `message add` for inserting/saving raw messages; `save` is only an alias.
-- Treat Notmuch and Sendmail backends as removed in v2.
-- Use `sirup` when repeated IMAP/SMTP invocations need session reuse.
+- v1 `--output json` becomes `--json`; `--folder/-f` becomes `--mailbox/-m`; filtered searches use `envelope search`.
+- Stable v2.1.0 uses top-level `configure`, flat native IMAP, and `smtp send`; check alpha syntax against the actual binary.
+- Use external OAuth/secret helpers instead of v1 built-in OAuth or native keyring assumptions.
+- `message add` inserts raw mail; `save` is an alias. Notmuch and Sendmail were removed; use supported backends.
+- Do not remove v2.1 identity/signature fields based on an old migration note. Never migrate the live config or replace the binary without task authorization.

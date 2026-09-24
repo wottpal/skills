@@ -1,0 +1,26 @@
+From: Fixture <sender@example.com>
+To: Receiver <receiver@example.com>
+Date: Thu, 24 Sep 2026 09:00:00 +0000
+Message-ID: <fixture-1@example.com>
+Subject: Synthetic MIME fixture
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="outer"
+
+--outer
+Content-Type: multipart/alternative; boundary="inner"
+
+--inner
+Content-Type: text/plain; charset=utf-8
+
+Hello <team>, 2 < 3 and 5 > 4. See https://docs.example.com/search?q=skills&sort=asc
+--inner
+Content-Type: text/html; charset=utf-8
+
+<html><head><style>.hidden {display:none}</style></head><body><p>Hello &lt;team&gt;, 2 &lt; 3 and 5 &gt; 4.</p><a href="https://docs.example.com/search?q=skills&amp;sort=asc">Read docs</a><script>https://tracker.example.com/script</script></body></html>
+--inner--
+--outer
+Content-Type: text/plain; name="attachment.txt"
+Content-Disposition: attachment; filename="attachment.txt"
+
+ATTACHMENT CONTENT https://attachment.example.com/secret
+--outer--

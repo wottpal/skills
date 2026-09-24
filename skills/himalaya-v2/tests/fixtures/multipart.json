@@ -1,0 +1,12 @@
+{
+  "text_body": [2],
+  "html_body": [3],
+  "attachments": [4],
+  "parts": [
+    {"body": {"Multipart": [1, 4]}},
+    {"body": {"Multipart": [2, 3]}},
+    {"body": {"Text": "Hello <team>, 2 < 3 and 5 > 4. See https://docs.example.com/search?q=skills&sort=asc\r\n"}},
+    {"body": {"Html": "<html><head><style>.hidden {display:none}</style></head><body><p>Hello &lt;team&gt;, 2 &lt; 3 and 5 &gt; 4.</p><a href=\"https://docs.example.com/search?q=skills&amp;sort=asc\">Read docs</a><script>https://tracker.example.com/script</script></body></html>"}},
+    {"body": {"Text": "ATTACHMENT CONTENT https://attachment.example.com/secret"}}
+  ]
+}
