@@ -25,6 +25,7 @@ For publishing and maintenance, this repository is the canonical source of truth
 | `deep-research-firecrawl` | [skills/deep-research-firecrawl](skills/deep-research-firecrawl/) | Firecrawl-first deep research with selectable depth modes |
 | `code-editor-switch` | [skills/code-editor-switch](skills/code-editor-switch/) | macOS `duti` workflow to switch code/text/config default handlers to a target editor |
 | `date-fns` | [skills/date-fns](skills/date-fns/) | Practical date-fns v4 and native @date-fns/tz workflow with strict timezone package guidance |
+| `extension-js` | [skills/extension-js](skills/extension-js/) | Extension.js setup, manifest-driven development, content-script cleanup, cross-browser builds, debugging, and packaging; verified against 4.1.31 |
 | `himalaya-v2` | [skills/himalaya-v2](skills/himalaya-v2/) | Pimalaya Himalaya v2 email CLI workflow verified against stable v2.1.0, with version-aware commands and tested message previews |
 | `jotai-nextjs` | [skills/jotai-nextjs](skills/jotai-nextjs/) | Jotai state management workflow with Next.js-focused SSR/hydration and migration guidance |
 | `readme-agents-writer` | [skills/readme-agents-writer](skills/readme-agents-writer/) | Maintain a canonical README.md + AGENTS.md symlink with verified guidance and safe cleanup of legacy CLAUDE.md companions |
