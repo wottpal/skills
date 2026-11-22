@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Read-only audit of selected README/AGENTS pairs and obsolete CLAUDE companions."""
+"""Read-only audit of selected README/AGENTS pairs, obsolete CLAUDE companions and, on request, doc sizes."""
 
 from __future__ import annotations
 
@@ -45,11 +45,66 @@ def check_directory(directory: Path) -> list[str]:
     return errors
 
 
+def instruction_doc(directory: Path) -> Path | None:
+    """The canonical file an agent loads for this scope: what AGENTS.md resolves to, if anything."""
+    agents = directory / "AGENTS.md"
+    return resolved_file(agents) if agents.exists() else None
+
+
+def read_allowlist(path: Path) -> set[Path]:
+    """Canonical docs allowed over the nested limit, one path per line, relative to the list file."""
+    entries = set()
+    for line in path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if line and not line.startswith("#"):
+            entries.add((path.parent / line).resolve())
+    return entries
+
+
+def check_sizes(
+    roots: set[Path],
+    scopes: set[Path],
+    max_root_bytes: int | None,
+    max_nested_chars: int | None,
+    allowed: set[Path],
+) -> list[str]:
+    """Size problems, each doc counted once: a root scope's doc against bytes, any other against characters."""
+    errors = []
+    root_docs = {doc for doc in (instruction_doc(root) for root in roots) if doc}
+    nested_docs = {doc for doc in (instruction_doc(scope) for scope in scopes) if doc} - root_docs
+
+    if max_root_bytes is not None:
+        for doc in sorted(root_docs):
+            size = doc.stat().st_size
+            if size > max_root_bytes:
+                errors.append(f"{doc}: {size:,} bytes, over the root limit of {max_root_bytes:,}; move detail into the docs that own it")
+
+    if max_nested_chars is not None:
+        sizes = {doc: len(doc.read_text(encoding="utf-8")) for doc in nested_docs}
+        for doc, chars in sorted(sizes.items()):
+            if chars > max_nested_chars and doc not in allowed:
+                errors.append(f"{doc}: {chars:,} characters, over the nested limit of {max_nested_chars:,}")
+        # The allowlist only shrinks: an entry that no longer needs its exception has to go.
+        for doc in sorted(allowed):
+            if doc not in sizes:
+                errors.append(f"{doc}: on the oversized list, but no checked AGENTS.md resolves to it; remove or update the entry")
+            elif sizes[doc] <= max_nested_chars:
+                errors.append(f"{doc}: now under the nested limit ({sizes[doc]:,} characters); remove its entry from the oversized list")
+    return errors
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("directories", nargs="*", default=["."], help="Selected scopes (default: current directory)")
     parser.add_argument("--recursive", action="store_true", help="Also audit all documentation scopes below each root")
+    parser.add_argument("--max-root-bytes", type=int, metavar="N", help="Fail when a supplied root's instruction doc is over N bytes")
+    parser.add_argument("--max-nested-chars", type=int, metavar="N", help="Fail when any other instruction doc is over N characters")
+    parser.add_argument("--allow-oversized", type=Path, metavar="FILE", help="Shrink-only list of docs allowed over --max-nested-chars")
     args = parser.parse_args()
+    if args.allow_oversized and args.max_nested_chars is None:
+        parser.error("--allow-oversized needs --max-nested-chars")
+
+    roots: set[Path] = set()
     scopes: set[Path] = set()
     scan_errors = []
     for name in args.directories:
@@ -58,6 +113,7 @@ def main() -> int:
         except (OSError, RuntimeError) as error:
             scan_errors.append(f"{name}: {error}")
             continue
+        roots.add(root)
         scopes.add(root)
         if args.recursive and root.is_dir():
             for current, dirs, files in os.walk(root, onerror=lambda error: scan_errors.append(str(error))):
@@ -74,6 +130,12 @@ def main() -> int:
         failures += len(errors)
         for error in errors:
             print(f"[FAIL] {directory}: {error}")
+    if args.max_root_bytes is not None or args.max_nested_chars is not None:
+        allowed = read_allowlist(args.allow_oversized) if args.allow_oversized else set()
+        size_errors = check_sizes(roots, scopes, args.max_root_bytes, args.max_nested_chars, allowed)
+        failures += len(size_errors)
+        for error in size_errors:
+            print(f"[FAIL] {error}")
     if failures:
         print(f"Result: {failures} violation(s); {len(scopes)} scope(s) checked.")
         return 1

@@ -84,7 +84,7 @@ Default workflow (recommended):
 python3 "<skill-dir>/scripts/check-doc-pairs.py" "<dir>"
 ```
 
-The helpers require Python 3.10+; the setter also requires Bash. Resolve `<skill-dir>` to this skill's directory; scope paths are relative to the caller's working directory. The shared target is relative to `<dir>`. The setter refuses conflicting files and never decides which prose to discard. Resolve reported conflicts using the migration guide, then rerun. The checker accepts multiple scope paths; with no arguments it audits the current directory. `--recursive` explicitly audits every documentation scope below the supplied roots.
+The helpers require Python 3.10+; the setter also requires Bash. Resolve `<skill-dir>` to this skill's directory; scope paths are relative to the caller's working directory. The shared target is relative to `<dir>`. The setter refuses conflicting files and never decides which prose to discard. Resolve reported conflicts using the migration guide, then rerun. The checker accepts multiple scope paths; with no arguments it audits the current directory. `--recursive` explicitly audits every documentation scope below the supplied roots. `--max-root-bytes`, `--max-nested-chars` and `--allow-oversized` add size limits ([Thinning oversized docs](references/thinning-oversized-docs.md)).
 
 Instruction-quality review (always run during doc updates):
 
@@ -122,6 +122,8 @@ Review search matches in context; no matches is normal (`rg` exits 1). The check
 6. Draft at the selected depth
    - For a small patch, edit the affected section without unrelated restructuring.
    - For a rewrite, establish structure, boundaries, rules, and commands first; then remove stale statements and duplication.
+   - Agents may cut a long doc at its end: keep rules first and reference (maps, catalogs) last, and keep area guidance in the directory where that work happens.
+   - When a doc is too large or content moves between docs, sort it, move blocks word for word, prove nothing was lost, and add a size check. Use `references/thinning-oversized-docs.md`.
 7. Migrate and validate the pair
    - Use `scripts/set-doc-pair.sh` after content reconciliation.
    - Remove obsolete CLAUDE companions, imports, hooks, and triplet checks within the selected scope.
@@ -160,8 +162,11 @@ All of the following are required:
 - `references/low-context-drafting.md`
 - `references/agent-instruction-best-practices.md`
 - `references/migration-and-cleanup.md`
+- `references/thinning-oversized-docs.md`
 
 ## Scripts
 
 - `scripts/set-doc-pair.sh`
 - `scripts/check-doc-pairs.py`
+
+After changing a script, run its offline tests from this skill's directory: `python3 -m unittest discover -s tests`.
